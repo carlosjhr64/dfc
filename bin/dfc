@@ -1,0 +1,468 @@
+#!/usr/bin/env ruby
+require 'digest/sha1'
+
+$options = ''
+while ARGV[0]=~/^-/ do
+  $options += ARGV.shift
+end
+
+HOME = '/home/cjhr64/'
+HIDDEN = HOME+'.dfc/'
+
+module DistributedFileCache
+  # TODO these will be in the configuration
+
+  TMP = '/home/cjhr64/.dfc/tmp/'
+
+  GPG = 'gpg -q --batch --passphrase-fd 0'
+  ENCRIPTING = '--force-mdc --symmetric'
+  DECRIPTING = '--decrypt'
+
+  SHRED = 'shred'
+
+  SHA1SUM = 'sha1sum'
+
+  WORDS = '/usr/share/dict/words'
+
+
+  if $options =~ /synch/
+    puts "Using synch"
+    DIRECTORIES = [
+	HOME+'Wuala/DFC',
+	HOME+'Dropbox/DFC',
+    ]
+  else
+    DIRECTORIES = [
+	HIDDEN+'A',
+	HIDDEN+'B',
+	HIDDEN+'C',
+    ]
+  end
+
+  @@sequence = 0
+
+  def self.directories
+    DIRECTORIES
+  end
+
+  def self.filename( key )
+    @@sequence += 1
+    dir = DistributedFileCache.directories
+    "#{dir[ @@sequence % dir.length ]}/#{key}"
+  end
+
+  def self.find(key)
+    DistributedFileCache.directories.each do |directory|
+      filename = "#{directory}/#{key}"
+      return filename if File.exist?(filename)
+    end
+    return nil
+  end
+
+  def self.exist?(key)
+    (DistributedFileCache.find(key).nil?)? false: true
+  end
+
+  def self.rename( newfile, key )
+    # If a collision occurs, it's a bug.
+    # I'm writting this as if sha1sums don't collide.
+    # Virtually never happens, but is not it's not impossible.
+    raise "COLLISSION!!!" if DistributedFileCache.exist?(key)
+    File.rename(newfile, DistributedFileCache.filename(key) )
+  end
+
+  def self.encrypt(plain,encripted,passphrase)
+    raise "Plain file #{plain} does not exist" if !File.exist?(plain)
+    IO.popen( "#{GPG} --output '#{encripted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    raise "Encripted #{encripted} not created" if !File.exist?(encripted)
+  end
+
+  def self.decrypt(plain,encripted,passphrase)
+    raise "Encripted #{encripted} does not exist" if !File.exist?(encripted)
+    IO.popen( "#{GPG} --output '#{plain}' #{DECRIPTING} '#{encripted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    raise "Plain file #{plain} not created" if !File.exist?(plain)
+  end
+
+  def self.sha1sum(filename)
+    `#{SHA1SUM} #{filename}`.strip.split(/\s+/).first
+  end
+
+  def self.login_exist?(login)
+    sleep(1) # to avoid login mining
+    DistributedFileCache.exist?(login)
+  end
+
+  def self.write_string( passphrase, encrypted, salt, shred=true )
+    intermidiary = Tempfile.next
+    File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
+    DistributedFileCache.encrypt( intermidiary, encrypted, salt )
+    # TODO passphrase written to disk :-??
+    system( "#{SHRED} '#{intermidiary}'" ) if shred # ...in the interim.
+    File.unlink( intermidiary )
+  end
+
+  def self.register(login,salt,passphrase='')
+    raise "Username exists" if DistributedFileCache.login_exist?(login)
+    puts "Creating new user"
+puts "GOT HERE"
+    while passphrase.length < 64 do
+      passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
+    end
+puts passphrase
+    DistributedFileCache.write_string( passphrase, DistributedFileCache.filename(login), salt )
+
+    passphrase
+  end
+
+  def self.read_string( encrypted, salt, shred=true )
+    tempfile = Tempfile.next
+    DistributedFileCache.decrypt( tempfile, encrypted, salt )
+    passphrase = File.read(tempfile)
+    # TODO decrypted passphrase written to disk :-??
+    system( "#{SHRED} '#{tempfile}'" ) if shred # ...in the interim.
+    File.unlink(tempfile)
+    return passphrase
+  end
+
+  def self.get_passphrase(login,salt,newuser)
+    if newuser then
+      # returns passphrase
+      return DistributedFileCache.register(login,salt)
+    else
+      encrypted = DistributedFileCache.find(login)
+      raise "Bad Login" if encrypted.nil?
+      # returns passphrase
+      return DistributedFileCache.read_string( encrypted, salt )
+    end
+    raise "TOTAL FAIL! :))"
+  end
+
+  def self.unregister(login)
+    DistributedFileCache.directories.each do |dir|
+      filename = "#{dir}/#{login}"
+      File.unlink(filename) if File.exist?(filename)
+    end
+  end
+
+  def self.password_strength(username,password)
+      raise "username not set"			if username.nil?
+      raise "password not set"			if password.nil?
+      raise "username too short"		if username.length < 4
+      raise "password too short"		if password.length < 4
+      raise "password must have a \\d"		if password !~ /\d/
+      raise "password must have a [A-Z]"	if password !~ /[A-Z]/
+      raise "password must have a [a-z]"	if password !~ /[a-z]/
+      raise "password must have a \\W"		if password !~ /[a-z]/
+      raise "username taken" if `grep -i #{username} #{WORDS}`.length > 0
+  end
+
+  def self.digest(string)
+    Digest::SHA1.hexdigest(string)
+  end
+
+  class ReopenFile
+    attr_reader :path
+    attr_reader :handle
+    def initialize(path)
+      @path = path
+      @handle = nil
+    end
+
+    def open(mode='r')
+      @handle = File.open(@path,mode)
+    end
+
+    def close
+      @handle.close
+      @handle = nil
+    end
+
+    def unlink
+      File.unlink(@path)
+    end
+  end
+
+  class Tempfile < ReopenFile
+
+    @@count = 0
+
+    def self.next
+      @@count += 1
+      TMP+"scramble.#{$$}.#{@@count}"
+    end
+
+    def initialize
+      super(Tempfile.next)
+    end
+  end
+
+  class FilesArray < Array
+    def initialize(length)
+      super
+    end
+
+    def open(mode='r')
+      0.upto(self.length-1){|index| self[index].open(mode) }
+    end
+
+    def close
+      0.upto(self.length-1){|index| self[index].close }
+    end
+
+    def unlink
+      0.upto(self.length-1){|index| self[index].unlink }
+    end
+  end
+
+  class Tempfiles < FilesArray
+    def initialize(length)
+      super
+      0.upto(length-1){|index| self[index] = Tempfile.new }
+    end
+  end
+
+  class SourceFiles < FilesArray
+    def initialize(sources)
+      length = sources.length
+      super(length)
+      0.upto(length-1){|index| self[index] = ReopenFile.new( DistributedFileCache.find(sources[index]) ) }
+    end
+  end
+
+  class Resources
+
+    def initialize( username, password, newuser=false )
+      DistributedFileCache.password_strength(username,password)
+      salt = username+password
+      login = DistributedFileCache.digest(salt)
+      @passphrase = DistributedFileCache.get_passphrase(login,salt,newuser)
+      @login = login
+    end
+
+    def change_authentication(username, password)
+      DistributedFileCache.password_strength(username,password)
+      salt = username+password
+      login = DistributedFileCache.digest(salt)
+      DistributedFileCache.register(login,salt,@passphrase)
+      DistributedFileCache.unregister(@login)
+      @login = login
+    end
+
+    def resource_key(key)
+      DistributedFileCache.digest(key+@passphrase)
+    end
+
+    def exist?(key)
+      DistributedFileCache.exist?( resource_key(key) )
+    end
+
+    def get_resources(filename)
+      index_decrypted = Tempfile.next
+      DistributedFileCache.decrypt(index_decrypted, filename, @passphrase)
+      resources = []
+      File.open(index_decrypted){|index_handle| index_handle.each{|line| resources.push(line.strip) }}
+      system( "#{SHRED} '#{index_decrypted}'" )
+      File.unlink(index_decrypted)
+      return resources
+    end
+
+    def delete_resources(index_key)
+      if filename = DistributedFileCache.find(index_key) then
+        resources = get_resources(filename)
+        File.unlink(filename)
+        resources.pop
+        resources.each do |resource_key|
+          if resource_file = DistributedFileCache.find(resource_key) then
+            File.unlink(resource_file)
+          end
+        end
+        return true
+      end
+      return false
+    end
+
+    def insert(filename, key, force=false)
+      raise "#{filename} does not exist." if !File.exist?(filename)
+      index_key = resource_key(key)
+      raise "#{key} exists." if !force && DistributedFileCache.exist?(index_key)
+
+      intermediary = Tempfile.next
+      DistributedFileCache.encrypt(filename,intermediary,@passphrase)
+
+      size = File.size(intermediary)
+      length = Math.log( size - 1 + Math::E ).to_i
+
+      tempfiles = Tempfiles.new(length)
+
+      count = 0
+      File.open(intermediary,'r') do |filehandle|
+        xor = 0
+        tempfiles.open('w')
+        filehandle.each_byte do |chr|
+          break if !(count < size)
+          tempfiles[ count % length ].handle.putc (chr^xor)
+          xor = chr
+          count += 1
+        end
+        tempfiles.close
+      end
+      File.unlink(intermediary)
+
+      if !(count == size) then
+        tempfiles.unlink
+        raise "There is a bug!  Unconfirmed file length (#{count} != #{size})."
+      end
+
+      fragment_keys = []
+      tempfiles.each do |tempfile|
+        path = tempfile.path
+        fragment_key = resource_key( DistributedFileCache.sha1sum(path) )
+        fragment_keys.push( fragment_key )
+        DistributedFileCache.rename( path, fragment_key )       
+      end
+      fragment_keys.push( count.to_s )
+
+      index_file = Tempfile.next
+      File.open(index_file,'w'){|index_handle| index_handle.puts fragment_keys.join("\n") }
+      index_encrypted = Tempfile.next
+      DistributedFileCache.encrypt(index_file,index_encrypted,@passphrase)
+      system( "#{SHRED} '#{index_file}'" )
+      File.unlink(index_file)
+
+      delete_resources(index_key) # deletes previous entry
+      DistributedFileCache.rename( index_encrypted, index_key )       
+    end
+
+
+    def extract(filename, key, force=false)
+      raise "#{filename} exists." if !force && File.exist?(filename)
+      index_key = resource_key(key)
+      index_enc = DistributedFileCache.find(index_key)
+      raise "#{key} not found" if index_enc.nil?
+
+      resources = get_resources(index_enc)
+      count = resources.pop.to_i
+      source_files = SourceFiles.new(resources)
+      length = resources.length
+
+      xor = 0
+      intermediary = Tempfile.next # 2 b intermidary
+      File.open(intermediary,'w') do |filehandle|
+        source_files.open
+        0.upto(count-1) do |index|
+          chr = (source_files[ index % length ].handle.getbyte ^ xor)
+          xor = chr
+          filehandle.putc chr.chr
+        end
+        source_files.close
+      end
+      DistributedFileCache.decrypt(filename,intermediary,@passphrase)
+      File.unlink(intermediary)
+    end
+
+  end
+
+end
+
+
+command = ARGV.shift
+filename = ARGV.shift
+key = ARGV.shift
+
+def help
+  puts <<EOT
+Usage: dfc <ci,ci!,co,co!,shred,shred!> filename key"
+	ci	creates a new key with the file's content
+	ci!	overwrites an existing key with the file's content
+	co	creates a new file with the key's content
+	co!	overwrites a file with the key's content
+	shred	creates a new key with the file's content and then deletes the file
+	shred!	overwrites a key with the file's content and then deletes the file
+	delete	not implemented yet
+EOT
+  exit
+end
+
+# First... what are your intentions?
+if !key || !filename || !['ci','co','ci!','co!','shred','shred!'].include?(command) then
+  help
+end
+
+if exists = File.exist?(filename) then
+  if ['co'].include?(command) then
+    puts 'File exist.'
+    help
+  end
+else
+  if ['ci','ci!','co!','shred','shred!'].include?(command) then
+    puts 'File does not exist.'
+    help
+  end
+end
+
+username = ENV[:username]
+if !username then
+  print "Username: "
+  username = $stdin.gets.strip
+end
+
+password = ENV[:password]
+if !password then
+  #print "Password: "
+  #password = $stdin.gets.strip
+  #system('clear')  # password shown
+  print "Password: "
+  password = `input_password`.strip
+end
+
+dfc = nil
+begin
+  dfc = DistributedFileCache::Resources.new(username,password)
+rescue StandardError
+  print "#{username}/#{password} not in database, create it(Y/n)? "
+  if $stdin.gets.strip == 'Y' then
+    begin
+      dfc = DistributedFileCache::Resources.new(username,password,true)
+    rescue StandardError
+      puts $!
+      puts "Well... can't do that either."
+    end
+  end
+  system('clear') # password shown
+end
+
+if dfc then
+  if dfc.exist?(key) then
+    if ['ci','shred'].include?(command) then
+      puts "Key exists."
+      help
+    end
+  else
+    if ['co','co!','shred!'].include?(command) then
+      puts "Key does not exist."
+      help
+    end
+  end
+
+  puts 'Working...'
+  success = log = true
+  case command
+    when 'ci'	then dfc.insert(filename,key)
+    when 'ci!'	then dfc.insert(filename,key,true)
+    when 'co'	then dfc.extract(filename,key)
+    when 'co!'	then dfc.extract(filename,key,true)
+    when 'shred'
+      dfc.insert(filename,key)
+      system("shred -u '#{filename}'")
+    when 'shred!'
+      dfc.insert(filename,key,true)
+      system("shred -u '#{filename}'")
+    else
+      success = log = false
+      puts "Hmmm..."
+  end
+  puts 'OK' if success
+  if log then
+    File.open( HIDDEN+'log','a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
+  end
+end
