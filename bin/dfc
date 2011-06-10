@@ -1,11 +1,6 @@
 #!/usr/bin/env ruby
 require 'digest/sha1'
 
-$options = ''
-while ARGV[0]=~/^-/ do
-  $options += ARGV.shift
-end
-
 HOME = '/home/cjhr64/'
 HIDDEN = HOME+'.dfc/'
 
@@ -360,90 +355,144 @@ puts passphrase
       File.unlink(intermediary)
     end
 
+    def delete(key)
+      index_key = resource_key(key)
+      index_enc = DistributedFileCache.find(index_key)
+      raise "#{key} not found" if index_enc.nil?
+      resources = get_resources(index_enc)
+      File.unlink(index_enc)
+      resources.each do |resource|
+        if resource_file = DistributedFileCache.find(resource) then
+          File.unlink(resource_file)
+        end
+      end
+    end
+
   end
 
 end
 
 
-command = ARGV.shift
-filename = ARGV.shift
-key = ARGV.shift
 
 def help
   puts <<EOT
-Usage: dfc <ci,ci!,co,co!,shred,shred!> filename key"
+Usage: dfc [ci,ci!,co,co!,shred,shred!] key <filename>"
 	ci	creates a new key with the file's content
 	ci!	overwrites an existing key with the file's content
 	co	creates a new file with the key's content
 	co!	overwrites a file with the key's content
 	shred	creates a new key with the file's content and then deletes the file
 	shred!	overwrites a key with the file's content and then deletes the file
-	delete	not implemented yet
+	rmkey	deletes key
 EOT
-  exit
+  exit # EXIT
 end
 
-# First... what are your intentions?
-if !key || !filename || !['ci','co','ci!','co!','shred','shred!'].include?(command) then
-  help
-end
-
-if exists = File.exist?(filename) then
-  if ['co'].include?(command) then
-    puts 'File exist.'
+def validate(command,key,filename)
+  # First... what are your intentions?
+  if (!filename && !(command=='rmkey')) || !key || !['ci','co','ci!','co!','shred','shred!','rmkey'].include?(command) then
     help
   end
-else
-  if ['ci','ci!','co!','shred','shred!'].include?(command) then
-    puts 'File does not exist.'
-    help
-  end
-end
-
-username = ENV[:username]
-if !username then
-  print "Username: "
-  username = $stdin.gets.strip
-end
-
-password = ENV[:password]
-if !password then
-  #print "Password: "
-  #password = $stdin.gets.strip
-  #system('clear')  # password shown
-  print "Password: "
-  password = `input_password`.strip
-end
-
-dfc = nil
-begin
-  dfc = DistributedFileCache::Resources.new(username,password)
-rescue StandardError
-  print "#{username}/#{password} not in database, create it(Y/n)? "
-  if $stdin.gets.strip == 'Y' then
-    begin
-      dfc = DistributedFileCache::Resources.new(username,password,true)
-    rescue StandardError
-      puts $!
-      puts "Well... can't do that either."
+  if filename then
+    if command == 'rmkey' then
+      puts 'Filename meaningless for rmkey command'
+      help
+    end
+    if exists = File.exist?(filename) then
+      if ['co'].include?(command) then
+        puts 'File exist.'
+        help
+      end
+    else
+      if ['ci','ci!','co!','shred','shred!'].include?(command) then
+        puts 'File does not exist.'
+        help
+      end
     end
   end
-  system('clear') # password shown
 end
 
-if dfc then
+def get_username
+  username = ENV[:username]
+  if !username then
+    print "Username: "
+    username = $stdin.gets.strip
+  end
+  username
+end
+
+def confirm_password
+  print "Password: "
+  password = `input_password`.strip
+  puts
+  return password
+end
+
+def get_password
+  password = ENV[:password]
+  if !password then
+    password = confirm_password
+  end
+end
+
+def login
+  username = get_username
+  password = get_password
+ return [username,password]
+end
+
+def existing_login(username,password)
+  begin
+    return DistributedFileCache::Resources.new(username,password)
+  rescue StandardError
+    return nil
+  end
+end
+
+def register(username,password)
+  begin
+    return DistributedFileCache::Resources.new(username,password,true)
+  rescue StandardError
+    puts $!
+    puts $!.backtrace
+    puts "Well... this was really unexpected.  Please send a bug report."
+    exit # EXIT
+  end
+end
+
+def authenticate(username,password)
+  dfc = existing_login(username,password)
+  if dfc.nil? then
+    puts "Verify:"
+    confimation = confirm_password
+    if confimation == password then
+      print "#{username}'s login not in database, create it(Y/n)? "
+      if $stdin.gets.strip == 'Y' then
+        return register(username,password)
+      end
+      exit # EXIT
+    end
+    puts "Password confirmation did not match."
+    exit # EXIT
+  end
+  return dfc
+end
+
+def key_validation(dfc,command,key)
   if dfc.exist?(key) then
     if ['ci','shred'].include?(command) then
       puts "Key exists."
       help
     end
   else
-    if ['co','co!','shred!'].include?(command) then
+    if ['co','co!','shred!','rmkey'].include?(command) then
       puts "Key does not exist."
       help
     end
   end
+end
 
+def execute(dfc,command,key,filename)
   puts 'Working...'
   success = log = true
   case command
@@ -457,12 +506,34 @@ if dfc then
     when 'shred!'
       dfc.insert(filename,key,true)
       system("shred -u '#{filename}'")
+    when 'rmkey' then dfc.delete(key)
     else
       success = log = false
-      puts "Hmmm..."
+      puts "Hmmm... missing command? Send me a bug report."
   end
   puts 'OK' if success
   if log then
     File.open( HIDDEN+'log','a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
   end
+end
+
+$options = ''
+while ARGV[0]=~/^-/ do
+  $options += ARGV.shift
+end
+
+command	= ARGV.shift
+key	= ARGV.shift
+filename = ARGV.shift
+
+validate(command,key,filename)
+username, password = *login
+dfc = authenticate(username,password)
+key_validation(dfc,command,key)
+begin
+  execute(dfc,command,key,filename)
+rescue Exception
+  puts $!
+  puts $!.backtrace
+  puts "OUCH!!! I don't wanna hear about it :))"
 end
