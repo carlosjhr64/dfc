@@ -530,7 +530,7 @@ command	= ARGV.shift
 key	= ARGV.shift
 filename = ARGV.shift
 
-if command = 'log' then
+if command == 'log' then
   log = HIDDEN+'log'
   if key == 'clear' then
     puts File.unlink( log ) if File.exist?( log )
