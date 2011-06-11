@@ -61,9 +61,13 @@ module DistributedFileCache
   def self.rename( newfile, key )
     # If a collision occurs, it's a bug.
     # I'm writting this as if sha1sums don't collide.
-    # Virtually never happens, but is not it's not impossible.
+    # Virtually never happens, but it's not impossible.
     raise "COLLISSION!!!" if DistributedFileCache.exist?(key)
     File.rename(newfile, DistributedFileCache.filename(key) )
+  end
+
+  def self.epoched(filename)
+    File.utime( 0, 0, filename )
   end
 
   def self.encrypt(plain,encripted,passphrase)
@@ -91,6 +95,7 @@ module DistributedFileCache
     intermidiary = Tempfile.next
     File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
     DistributedFileCache.encrypt( intermidiary, encrypted, salt )
+    DistributedFileCache.epoched(encrypted)
     # TODO passphrase written to disk :-??
     system( "#{SHRED} '#{intermidiary}'" ) if shred # ...in the interim.
     File.unlink( intermidiary )
@@ -98,12 +103,9 @@ module DistributedFileCache
 
   def self.register(login,salt,passphrase='')
     raise "Username exists" if DistributedFileCache.login_exist?(login)
-    puts "Creating new user"
-puts "GOT HERE"
     while passphrase.length < 64 do
       passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
     end
-puts passphrase
     DistributedFileCache.write_string( passphrase, DistributedFileCache.filename(login), salt )
 
     passphrase
@@ -112,6 +114,7 @@ puts passphrase
   def self.read_string( encrypted, salt, shred=true )
     tempfile = Tempfile.next
     DistributedFileCache.decrypt( tempfile, encrypted, salt )
+    DistributedFileCache.epoched(encrypted)
     passphrase = File.read(tempfile)
     # TODO decrypted passphrase written to disk :-??
     system( "#{SHRED} '#{tempfile}'" ) if shred # ...in the interim.
@@ -356,16 +359,7 @@ puts passphrase
     end
 
     def delete(key)
-      index_key = resource_key(key)
-      index_enc = DistributedFileCache.find(index_key)
-      raise "#{key} not found" if index_enc.nil?
-      resources = get_resources(index_enc)
-      File.unlink(index_enc)
-      resources.each do |resource|
-        if resource_file = DistributedFileCache.find(resource) then
-          File.unlink(resource_file)
-        end
-      end
+      raise "#{key} not found" if !delete_resources( resource_key(key) )
     end
 
   end
@@ -376,7 +370,7 @@ end
 
 def help
   puts <<EOT
-Usage: dfc [ci,ci!,co,co!,shred,shred!] key <filename>"
+Usage: dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>"
 	ci	creates a new key with the file's content
 	ci!	overwrites an existing key with the file's content
 	co	creates a new file with the key's content
