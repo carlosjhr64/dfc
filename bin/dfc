@@ -72,15 +72,17 @@ module DistributedFileCache
     DistributedFileCache.epoched(filename)
   end
 
-  def self.encrypt(plain,encrypted,passphrase)
+  def self.encrypt(plain,encrypted,passphrase,force=false)
     raise "Plain file #{plain} does not exist" if !File.exist?(plain)
-    IO.popen( "#{GPG} --output '#{encrypted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    yes = (force)? '--yes': ''
+    IO.popen( "#{GPG} #{yes} --output '#{encrypted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
     raise "Encripted #{encrypted} not created" if !File.exist?(encrypted)
   end
 
-  def self.decrypt(plain,encrypted,passphrase)
+  def self.decrypt(plain,encrypted,passphrase,force=false)
     raise "Encripted #{encrypted} does not exist" if !File.exist?(encrypted)
-    IO.popen( "#{GPG} --output '#{plain}' #{DECRIPTING} '#{encrypted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    yes = (force)? '--yes': ''
+    IO.popen( "#{GPG} #{yes} --output '#{plain}' #{DECRIPTING} '#{encrypted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
     raise "Plain file #{plain} not created" if !File.exist?(plain)
   end
 
@@ -362,7 +364,7 @@ module DistributedFileCache
         source_files.close
       end
       source_files.epoched
-      DistributedFileCache.decrypt(filename,intermediary,@passphrase)
+      DistributedFileCache.decrypt(filename,intermediary,@passphrase,force)
       File.unlink(intermediary)
     end
 
