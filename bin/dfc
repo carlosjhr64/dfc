@@ -58,16 +58,18 @@ module DistributedFileCache
     (DistributedFileCache.find(key).nil?)? false: true
   end
 
+  def self.epoched(filename)
+    File.utime( 0, 0, filename )
+  end
+
   def self.rename( newfile, key )
     # If a collision occurs, it's a bug.
     # I'm writting this as if sha1sums don't collide.
     # Virtually never happens, but it's not impossible.
     raise "COLLISSION!!!" if DistributedFileCache.exist?(key)
-    File.rename(newfile, DistributedFileCache.filename(key) )
-  end
-
-  def self.epoched(filename)
-    File.utime( 0, 0, filename )
+    filename = DistributedFileCache.filename(key)
+    File.rename(newfile, filename)
+    DistributedFileCache.epoched(filename)
   end
 
   def self.encrypt(plain,encrypted,passphrase)
@@ -225,6 +227,10 @@ module DistributedFileCache
       super(length)
       0.upto(length-1){|index| self[index] = ReopenFile.new( DistributedFileCache.find(sources[index]) ) }
     end
+
+    def epoched
+      0.upto(self.length-1){|index| DistributedFileCache.epoched( self[index].path ) }
+    end
   end
 
   class Resources
@@ -254,9 +260,10 @@ module DistributedFileCache
       DistributedFileCache.exist?( resource_key(key) )
     end
 
-    def get_resources(filename)
+    def get_resources(encrypted)
       index_decrypted = Tempfile.next
-      DistributedFileCache.decrypt(index_decrypted, filename, @passphrase)
+      DistributedFileCache.decrypt(index_decrypted, encrypted, @passphrase)
+      DistributedFileCache.epoched(encrypted)
       resources = []
       File.open(index_decrypted){|index_handle| index_handle.each{|line| resources.push(line.strip) }}
       system( "#{SHRED} '#{index_decrypted}'" )
@@ -354,6 +361,7 @@ module DistributedFileCache
         end
         source_files.close
       end
+      source_files.epoched
       DistributedFileCache.decrypt(filename,intermediary,@passphrase)
       File.unlink(intermediary)
     end
