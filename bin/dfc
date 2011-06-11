@@ -70,15 +70,15 @@ module DistributedFileCache
     File.utime( 0, 0, filename )
   end
 
-  def self.encrypt(plain,encripted,passphrase)
+  def self.encrypt(plain,encrypted,passphrase)
     raise "Plain file #{plain} does not exist" if !File.exist?(plain)
-    IO.popen( "#{GPG} --output '#{encripted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
-    raise "Encripted #{encripted} not created" if !File.exist?(encripted)
+    IO.popen( "#{GPG} --output '#{encrypted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    raise "Encripted #{encrypted} not created" if !File.exist?(encrypted)
   end
 
-  def self.decrypt(plain,encripted,passphrase)
-    raise "Encripted #{encripted} does not exist" if !File.exist?(encripted)
-    IO.popen( "#{GPG} --output '#{plain}' #{DECRIPTING} '#{encripted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+  def self.decrypt(plain,encrypted,passphrase)
+    raise "Encripted #{encrypted} does not exist" if !File.exist?(encrypted)
+    IO.popen( "#{GPG} --output '#{plain}' #{DECRIPTING} '#{encrypted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
     raise "Plain file #{plain} not created" if !File.exist?(plain)
   end
 
@@ -101,16 +101,6 @@ module DistributedFileCache
     File.unlink( intermidiary )
   end
 
-  def self.register(login,salt,passphrase='')
-    raise "Username exists" if DistributedFileCache.login_exist?(login)
-    while passphrase.length < 64 do
-      passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
-    end
-    DistributedFileCache.write_string( passphrase, DistributedFileCache.filename(login), salt )
-
-    passphrase
-  end
-
   def self.read_string( encrypted, salt, shred=true )
     tempfile = Tempfile.next
     DistributedFileCache.decrypt( tempfile, encrypted, salt )
@@ -120,6 +110,16 @@ module DistributedFileCache
     system( "#{SHRED} '#{tempfile}'" ) if shred # ...in the interim.
     File.unlink(tempfile)
     return passphrase
+  end
+
+  def self.register(login,salt,passphrase='')
+    raise "Username exists" if DistributedFileCache.login_exist?(login)
+    while passphrase.length < 64 do
+      passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
+    end
+    DistributedFileCache.write_string( passphrase, DistributedFileCache.filename(login), salt )
+
+    passphrase
   end
 
   def self.get_passphrase(login,salt,newuser)
