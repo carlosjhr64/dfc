@@ -530,6 +530,17 @@ command	= ARGV.shift
 key	= ARGV.shift
 filename = ARGV.shift
 
+if command = 'log' then
+  log = HIDDEN+'log'
+  if key == 'clear' then
+    puts File.unlink( log ) if File.exist?( log )
+    exit # EXIT
+  else
+    puts File.read( log ) if File.exist?( log )
+    exit # EXIT
+  end
+end
+
 validate(command,key,filename)
 username, password = *login
 dfc = authenticate(username,password)
