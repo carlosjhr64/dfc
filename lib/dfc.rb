@@ -27,7 +27,7 @@ module DFC
   end
 
   def self.epoched(filename)
-    File.utime( 0, 0, filename )
+    Configuration::UNTOUCH.call(filename)
   end
 
   def self.rename( newfile, key )
