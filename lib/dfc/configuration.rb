@@ -33,8 +33,8 @@ module Configuration
   ### Procedures ###
 
 
-  FILE_UNTOUCH = Proc.new{|filename| File.utime( 0, 0, filename ) }
-  FILE_TOUCH = Proc.new{|filename| now = Time.now.to_i; File.utime( now, now, filename ) }
+  UNTOUCH = Proc.new{|filename| File.utime( 0, 0, filename ) }
+  TOUCH = Proc.new{|filename| now = Time.now.to_i; File.utime( now, now, filename ) }
 
   FILE_CLEAR = Proc.new{|filename| system( "#{FILE_CLEARER} #{filename}" ) }
 
