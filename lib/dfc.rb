@@ -2,6 +2,43 @@ require 'dfc/configuration'
 
 module DFC
 
+  class Shredder
+    def initialize(filename)
+      @filename = filename
+    end
+
+    def shred(writers,limit=0)
+      shreds = writers.length
+      xor = count = 0
+      reader = File.open(@filename,'r')
+      while byte = reader.getbyte do
+        writers[ count % shreds ].putc byte^xor
+        xor = byte
+        count += 1
+        # note: will not break if limit is zero
+        break if count == limit
+      end
+      reader.close
+      return count
+    end
+
+    def unshred(readers,limit=0)
+      shreds = readers.length
+      xor = count = 0
+      writer = File.open(@filename,'w')
+      while byte = readers[ count % shreds ].getbyte do
+        chr = byte^xor
+        xor = chr
+        writer.putc chr
+        count += 1
+        # note: will not break if limit is zero
+        break if count == limit
+      end
+      writer.cloxe
+      return count
+    end
+  end
+
   @@sequence = 0
 
   def self.directories
@@ -318,18 +355,18 @@ module DFC
       source_files = SourceFiles.new(resources)
       length = resources.length
 
-      xor = 0
       intermediary = Tempfile.next # 2 b intermidary
-      File.open(intermediary,'w') do |filehandle|
-        source_files.open
-        0.upto(count-1) do |index|
-          chr = (source_files[ index % length ].handle.getbyte ^ xor)
-          xor = chr
-          filehandle.putc chr.chr
-        end
+      shredder = Shredder.new(intermediary)
+      source_files.open
+      begin
+        shredder.unshred( source_files.map{|f| f.handle} )
+      rescue Exception
+        raise $!
+      ensure
         source_files.close
+        source_files.epoched
       end
-      source_files.epoched
+
       DFC.decrypt(filename,intermediary,@passphrase,force)
       File.unlink(intermediary)
     end
