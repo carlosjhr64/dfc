@@ -34,7 +34,7 @@ module DFC
         # note: will not break if limit is zero
         break if count == limit
       end
-      writer.cloxe
+      writer.close
       return count
     end
   end
@@ -304,23 +304,17 @@ module DFC
 
       tempfiles = Tempfiles.new(length)
 
-      count = 0
-      File.open(intermediary,'r') do |filehandle|
-        xor = 0
-        tempfiles.open('w')
-        filehandle.each_byte do |chr|
-          break if !(count < size)
-          tempfiles[ count % length ].handle.putc (chr^xor)
-          xor = chr
-          count += 1
-        end
-        tempfiles.close
-      end
-      File.unlink(intermediary)
-
-      if !(count == size) then
+      shredder = Shredder.new(intermediary)
+      tempfiles.open('w')
+      begin
+        count = shredder.shred(tempfiles.map{|file| file.handle},size+1)
+        raise "There is a bug!  Unconfirmed file length (#{count} != #{size})." if count != size
+      rescue Exception
         tempfiles.unlink
-        raise "There is a bug!  Unconfirmed file length (#{count} != #{size})."
+        raise $!
+      ensure
+        tempfiles.close
+        File.unlink(intermediary)
       end
 
       fragment_keys = []
@@ -359,16 +353,16 @@ module DFC
       shredder = Shredder.new(intermediary)
       source_files.open
       begin
-        shredder.unshred( source_files.map{|f| f.handle} )
+        shredder.unshred( source_files.map{|file| file.handle} )
+        DFC.decrypt(filename,intermediary,@passphrase,force)
       rescue Exception
+        File.unlink(intermediary)
         raise $!
       ensure
         source_files.close
         source_files.epoched
+        File.unlink(intermediary)
       end
-
-      DFC.decrypt(filename,intermediary,@passphrase,force)
-      File.unlink(intermediary)
     end
 
     def delete(key)
