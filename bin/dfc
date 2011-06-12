@@ -1,53 +1,24 @@
 #!/usr/bin/env ruby
 require 'digest/sha1'
-
-HOME = '/home/cjhr64/'
-HIDDEN = HOME+'.dfc/'
-
-module DistributedFileCache
-  # TODO these will be in the configuration
-
-  TMP = '/home/cjhr64/.dfc/tmp/'
-
-  GPG = 'gpg -q --batch --passphrase-fd 0'
-  ENCRIPTING = '--force-mdc --symmetric'
-  DECRIPTING = '--decrypt'
-
-  SHRED = 'shred'
-
-  SHA1SUM = 'sha1sum'
-
-  WORDS = '/usr/share/dict/words'
+require 'dfc/configuration'
 
 
-  if $options =~ /synch/
-    puts "Using synch"
-    DIRECTORIES = [
-	HOME+'Wuala/DFC',
-	HOME+'Dropbox/DFC',
-    ]
-  else
-    DIRECTORIES = [
-	HIDDEN+'A',
-	HIDDEN+'B',
-	HIDDEN+'C',
-    ]
-  end
+module DFC
 
   @@sequence = 0
 
   def self.directories
-    DIRECTORIES
+    Configuration::DIRECTORIES
   end
 
   def self.filename( key )
     @@sequence += 1
-    dir = DistributedFileCache.directories
+    dir = DFC.directories
     "#{dir[ @@sequence % dir.length ]}/#{key}"
   end
 
   def self.find(key)
-    DistributedFileCache.directories.each do |directory|
+    DFC.directories.each do |directory|
       filename = "#{directory}/#{key}"
       return filename if File.exist?(filename)
     end
@@ -55,7 +26,7 @@ module DistributedFileCache
   end
 
   def self.exist?(key)
-    (DistributedFileCache.find(key).nil?)? false: true
+    (DFC.find(key).nil?)? false: true
   end
 
   def self.epoched(filename)
@@ -66,62 +37,60 @@ module DistributedFileCache
     # If a collision occurs, it's a bug.
     # I'm writting this as if sha1sums don't collide.
     # Virtually never happens, but it's not impossible.
-    raise "COLLISSION!!!" if DistributedFileCache.exist?(key)
-    filename = DistributedFileCache.filename(key)
+    raise "COLLISSION!!!" if DFC.exist?(key)
+    filename = DFC.filename(key)
     File.rename(newfile, filename)
-    DistributedFileCache.epoched(filename)
+    DFC.epoched(filename)
   end
 
   def self.encrypt(plain,encrypted,passphrase,force=false)
     raise "Plain file #{plain} does not exist" if !File.exist?(plain)
-    yes = (force)? '--yes': ''
-    IO.popen( "#{GPG} #{yes} --output '#{encrypted}' #{ENCRIPTING} '#{plain}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    Configuration::FILE_ENCRYPT.call(plain,encrypted,passphrase,force)
     raise "Encripted #{encrypted} not created" if !File.exist?(encrypted)
   end
 
   def self.decrypt(plain,encrypted,passphrase,force=false)
     raise "Encripted #{encrypted} does not exist" if !File.exist?(encrypted)
-    yes = (force)? '--yes': ''
-    IO.popen( "#{GPG} #{yes} --output '#{plain}' #{DECRIPTING} '#{encrypted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
+    Configuration::FILE_DECRYPT.call(plain,encrypted,passphrase,force)
     raise "Plain file #{plain} not created" if !File.exist?(plain)
   end
 
   def self.sha1sum(filename)
-    `#{SHA1SUM} #{filename}`.strip.split(/\s+/).first
+    Configuration::FILE_DIGEST.call(filename)
   end
 
   def self.login_exist?(login)
     sleep(1) # to avoid login mining
-    DistributedFileCache.exist?(login)
+    DFC.exist?(login)
   end
 
   def self.write_string( passphrase, encrypted, salt, shred=true )
     intermidiary = Tempfile.next
     File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
-    DistributedFileCache.encrypt( intermidiary, encrypted, salt )
-    DistributedFileCache.epoched(encrypted)
+    DFC.encrypt( intermidiary, encrypted, salt )
+    DFC.epoched(encrypted)
     # TODO passphrase written to disk :-??
-    system( "#{SHRED} '#{intermidiary}'" ) if shred # ...in the interim.
+    Configuration::FILE_CLEAR.call(intermidiary) if shred # ...in the interim.
     File.unlink( intermidiary )
   end
 
   def self.read_string( encrypted, salt, shred=true )
     tempfile = Tempfile.next
-    DistributedFileCache.decrypt( tempfile, encrypted, salt )
-    DistributedFileCache.epoched(encrypted)
+    DFC.decrypt( tempfile, encrypted, salt )
+    DFC.epoched(encrypted)
     passphrase = File.read(tempfile)
     # TODO decrypted passphrase written to disk :-??
-    system( "#{SHRED} '#{tempfile}'" ) if shred # ...in the interim.
+    Configuration::FILE_CLEAR.call(tempfile) if shred # ...in the interim.
     File.unlink(tempfile)
     return passphrase
   end
 
   def self.register(login,salt,passphrase='')
-    raise "Username exists" if DistributedFileCache.login_exist?(login)
+    raise "Username exists" if DFC.login_exist?(login)
     while passphrase.length < 64 do
       passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
     end
-    DistributedFileCache.write_string( passphrase, DistributedFileCache.filename(login), salt )
+    DFC.write_string( passphrase, DFC.filename(login), salt )
 
     passphrase
   end
@@ -129,18 +98,18 @@ module DistributedFileCache
   def self.get_passphrase(login,salt,newuser)
     if newuser then
       # returns passphrase
-      return DistributedFileCache.register(login,salt)
+      return DFC.register(login,salt)
     else
-      encrypted = DistributedFileCache.find(login)
+      encrypted = DFC.find(login)
       raise "Bad Login" if encrypted.nil?
       # returns passphrase
-      return DistributedFileCache.read_string( encrypted, salt )
+      return DFC.read_string( encrypted, salt )
     end
     raise "TOTAL FAIL! :))"
   end
 
   def self.unregister(login)
-    DistributedFileCache.directories.each do |dir|
+    DFC.directories.each do |dir|
       filename = "#{dir}/#{login}"
       File.unlink(filename) if File.exist?(filename)
     end
@@ -155,11 +124,11 @@ module DistributedFileCache
       raise "password must have a [A-Z]"	if password !~ /[A-Z]/
       raise "password must have a [a-z]"	if password !~ /[a-z]/
       raise "password must have a \\W"		if password !~ /[a-z]/
-      raise "username taken" if `grep -i #{username} #{WORDS}`.length > 0
+      raise "username taken" if `grep -i #{username} #{Configuration::WORDS}`.length > 0
   end
 
   def self.digest(string)
-    Digest::SHA1.hexdigest(string)
+    Configuration::STRING_DIGEST.call(string)
   end
 
   class ReopenFile
@@ -190,7 +159,7 @@ module DistributedFileCache
 
     def self.next
       @@count += 1
-      TMP+"scramble.#{$$}.#{@@count}"
+      Configuration::TMP+"/scramble.#{$$}.#{@@count}"
     end
 
     def initialize
@@ -227,59 +196,59 @@ module DistributedFileCache
     def initialize(sources)
       length = sources.length
       super(length)
-      0.upto(length-1){|index| self[index] = ReopenFile.new( DistributedFileCache.find(sources[index]) ) }
+      0.upto(length-1){|index| self[index] = ReopenFile.new( DFC.find(sources[index]) ) }
     end
 
     def epoched
-      0.upto(self.length-1){|index| DistributedFileCache.epoched( self[index].path ) }
+      0.upto(self.length-1){|index| DFC.epoched( self[index].path ) }
     end
   end
 
   class Resources
 
     def initialize( username, password, newuser=false )
-      DistributedFileCache.password_strength(username,password)
+      DFC.password_strength(username,password)
       salt = username+password
-      login = DistributedFileCache.digest(salt)
-      @passphrase = DistributedFileCache.get_passphrase(login,salt,newuser)
+      login = DFC.digest(salt)
+      @passphrase = DFC.get_passphrase(login,salt,newuser)
       @login = login
     end
 
     def change_authentication(username, password)
-      DistributedFileCache.password_strength(username,password)
+      DFC.password_strength(username,password)
       salt = username+password
-      login = DistributedFileCache.digest(salt)
-      DistributedFileCache.register(login,salt,@passphrase)
-      DistributedFileCache.unregister(@login)
+      login = DFC.digest(salt)
+      DFC.register(login,salt,@passphrase)
+      DFC.unregister(@login)
       @login = login
     end
 
     def resource_key(key)
-      DistributedFileCache.digest(key+@passphrase)
+      DFC.digest(key+@passphrase)
     end
 
     def exist?(key)
-      DistributedFileCache.exist?( resource_key(key) )
+      DFC.exist?( resource_key(key) )
     end
 
     def get_resources(encrypted)
       index_decrypted = Tempfile.next
-      DistributedFileCache.decrypt(index_decrypted, encrypted, @passphrase)
-      DistributedFileCache.epoched(encrypted)
+      DFC.decrypt(index_decrypted, encrypted, @passphrase)
+      DFC.epoched(encrypted)
       resources = []
       File.open(index_decrypted){|index_handle| index_handle.each{|line| resources.push(line.strip) }}
-      system( "#{SHRED} '#{index_decrypted}'" )
+      Configuration::FILE_CLEAR.call(index_decrypted)
       File.unlink(index_decrypted)
       return resources
     end
 
     def delete_resources(index_key)
-      if filename = DistributedFileCache.find(index_key) then
+      if filename = DFC.find(index_key) then
         resources = get_resources(filename)
         File.unlink(filename)
         resources.pop
         resources.each do |resource_key|
-          if resource_file = DistributedFileCache.find(resource_key) then
+          if resource_file = DFC.find(resource_key) then
             File.unlink(resource_file)
           end
         end
@@ -291,10 +260,10 @@ module DistributedFileCache
     def insert(filename, key, force=false)
       raise "#{filename} does not exist." if !File.exist?(filename)
       index_key = resource_key(key)
-      raise "#{key} exists." if !force && DistributedFileCache.exist?(index_key)
+      raise "#{key} exists." if !force && DFC.exist?(index_key)
 
       intermediary = Tempfile.next
-      DistributedFileCache.encrypt(filename,intermediary,@passphrase)
+      DFC.encrypt(filename,intermediary,@passphrase)
 
       size = File.size(intermediary)
       length = Math.log( size - 1 + Math::E ).to_i
@@ -323,28 +292,28 @@ module DistributedFileCache
       fragment_keys = []
       tempfiles.each do |tempfile|
         path = tempfile.path
-        fragment_key = resource_key( DistributedFileCache.sha1sum(path) )
+        fragment_key = resource_key( DFC.sha1sum(path) )
         fragment_keys.push( fragment_key )
-        DistributedFileCache.rename( path, fragment_key )       
+        DFC.rename( path, fragment_key )
       end
       fragment_keys.push( count.to_s )
 
       index_file = Tempfile.next
       File.open(index_file,'w'){|index_handle| index_handle.puts fragment_keys.join("\n") }
       index_encrypted = Tempfile.next
-      DistributedFileCache.encrypt(index_file,index_encrypted,@passphrase)
-      system( "#{SHRED} '#{index_file}'" )
+      DFC.encrypt(index_file,index_encrypted,@passphrase)
+      Configuration::FILE_CLEAR.call(index_file)
       File.unlink(index_file)
 
       delete_resources(index_key) # deletes previous entry
-      DistributedFileCache.rename( index_encrypted, index_key )       
+      DFC.rename( index_encrypted, index_key )
     end
 
 
     def extract(filename, key, force=false)
       raise "#{filename} exists." if !force && File.exist?(filename)
       index_key = resource_key(key)
-      index_enc = DistributedFileCache.find(index_key)
+      index_enc = DFC.find(index_key)
       raise "#{key} not found" if index_enc.nil?
 
       resources = get_resources(index_enc)
@@ -364,7 +333,7 @@ module DistributedFileCache
         source_files.close
       end
       source_files.epoched
-      DistributedFileCache.decrypt(filename,intermediary,@passphrase,force)
+      DFC.decrypt(filename,intermediary,@passphrase,force)
       File.unlink(intermediary)
     end
 
@@ -447,15 +416,17 @@ end
 
 def existing_login(username,password)
   begin
-    return DistributedFileCache::Resources.new(username,password)
+    return DFC::Resources.new(username,password)
   rescue StandardError
+    $stderr.puts $!	if !$options=~/q/
+    $stderr.puts $!.backtrace if $options=~/v/
     return nil
   end
 end
 
 def register(username,password)
   begin
-    return DistributedFileCache::Resources.new(username,password,true)
+    return DFC::Resources.new(username,password,true)
   rescue StandardError
     puts $!
     puts $!.backtrace
@@ -517,7 +488,7 @@ def execute(dfc,command,key,filename)
   end
   puts 'OK' if success
   if log then
-    File.open( HIDDEN+'log','a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
+    File.open( DFC::Configuration::HIDDEN+'log','a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
   end
 end
 
@@ -531,7 +502,7 @@ key	= ARGV.shift
 filename = ARGV.shift
 
 if command == 'log' then
-  log = HIDDEN+'log'
+  log = DFC::Configuration::HIDDEN+'log'
   if key == 'clear' then
     puts File.unlink( log ) if File.exist?( log )
     exit # EXIT
