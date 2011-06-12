@@ -10,9 +10,9 @@ module Configuration
   TMP = HIDDEN+'/tmp'
 
   DIRECTORIES = [
-	HIDDEN+'/A', #'red',
-	HIDDEN+'/B', #'green',
-	HIDDEN+'/C', #'blue',
+	HIDDEN+'/A', #'/red',
+	HIDDEN+'/B', #'/green',
+	HIDDEN+'/C', #'/blue',
     ]
 
   WORDS = '/usr/share/dict/words'
