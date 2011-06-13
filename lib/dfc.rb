@@ -93,7 +93,7 @@ module DFC
   def self.register(login,salt,passphrase='')
     raise "Username exists" if DFC.login_exist?(login)
     while passphrase.length < 64 do
-      passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"]/) }.inject(''){|string,char| string+char}
+      passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"`]/) }.inject(''){|string,char| string+char}
     end
     DFC.write_string( passphrase, DFC.filename(login), salt )
 
