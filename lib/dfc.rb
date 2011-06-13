@@ -241,6 +241,16 @@ module DFC
       end
     end
 
+    def shred_keys(tempfiles)
+      fragment_keys = []
+      tempfiles.each do |path|
+        fragment_key = resource_key( DFC.sha1sum(path) )
+        fragment_keys.push( fragment_key )
+        DFC.rename( path, fragment_key )
+      end
+      return fragment_keys
+    end
+
     def insert(filename, key, force=false)
       raise "#{filename} does not exist." if !File.exist?(filename)
       index_key = resource_key(key)
@@ -251,14 +261,8 @@ module DFC
       tempfiles = Files.new(length)
 
       Resources.shred(intermediary,tempfiles,size)
+      fragment_keys = shred_keys(tempfiles)
       
-      fragment_keys = []
-      tempfiles.each do |path|
-        fragment_key = resource_key( DFC.sha1sum(path) )
-        fragment_keys.push( fragment_key )
-        DFC.rename( path, fragment_key )
-      end
-
       index_file = Tempfile.next
       File.open(index_file,'w'){|index_handle| index_handle.puts fragment_keys.join("\n") }
       index_encrypted = encrypt(index_file)
