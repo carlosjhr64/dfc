@@ -184,12 +184,12 @@ module DFC
       @login = login
     end
 
-    def resource_key(key)
+    def get_resource_key(key)
       DFC.digest(key+@passphrase)
     end
 
     def exist?(key)
-      DFC.exist?( resource_key(key) )
+      DFC.exist?( get_resource_key(key) )
     end
 
     def get_resources(encrypted)
@@ -244,7 +244,7 @@ module DFC
     def create_shred_keys(tempfiles)
       shred_keys = []
       tempfiles.each do |path|
-        fragment_key = resource_key( DFC.sha1sum(path) )
+        fragment_key = get_resource_key( DFC.sha1sum(path) )
         shred_keys.push( fragment_key )
         DFC.rename( path, fragment_key )
       end
@@ -262,7 +262,7 @@ module DFC
 
     def insert(filename, key, force=false)
       raise "#{filename} does not exist." if !File.exist?(filename)
-      index_key = resource_key(key)
+      index_key = get_resource_key(key)
       raise "#{key} exists." if !force && DFC.exist?(index_key)
 
       intermediary = encrypt(filename)
@@ -277,7 +277,7 @@ module DFC
       DFC.rename( index_encrypted, index_key )
     end
 
-    def sew(source_files)
+    def self.sew(source_files)
       intermediary = Tempfile.next
       shredder = Shredder::Files.new(intermediary, source_files)
       begin
@@ -293,17 +293,17 @@ module DFC
 
     def extract(filename, key, force=false)
       raise "#{filename} exists." if !force && File.exist?(filename)
-      index_enc = DFC.find( resource_key(key) )
+      index_enc = DFC.find( get_resource_key(key) )
       raise "#{key} not found" if index_enc.nil?
 
       source_files = Files.new( get_resources(index_enc).map{|rkey| DFC.find(rkey) } ) # what if one is missing? TODO
-      intermediary = sew(source_files)
+      intermediary = Resources.sew(source_files)
       decrypt(intermediary, filename, force)
       File.unlink(intermediary)
     end
 
     def delete(key)
-      raise "#{key} not found" if !delete_resources( resource_key(key) )
+      raise "#{key} not found" if !delete_resources( get_resource_key(key) )
     end
 
   end
