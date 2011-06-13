@@ -4,6 +4,12 @@ require 'shredder'
 
 module DFC
 
+  def self.size_shreds(filename)
+    size = File.size(filename)
+    shreds = Math.log( size - 1 + Math::E ).to_i
+    return size,shreds
+  end
+
   @@sequence = 0
 
   def self.directories
@@ -222,16 +228,7 @@ module DFC
       return filename
     end
 
-    def insert(filename, key, force=false)
-      raise "#{filename} does not exist." if !File.exist?(filename)
-      index_key = resource_key(key)
-      raise "#{key} exists." if !force && DFC.exist?(index_key)
-
-      intermediary = encrypt(filename)
-      size = File.size(intermediary)
-      length = Math.log( size - 1 + Math::E ).to_i
-      tempfiles = Files.new(length)
-
+    def self.shred(intermediary,tempfiles,size)
       shredder = Shredder::Files.new(intermediary,tempfiles)
       begin
         # if it goes past size, there's a bug
@@ -242,6 +239,18 @@ module DFC
       ensure
         File.unlink(intermediary)
       end
+    end
+
+    def insert(filename, key, force=false)
+      raise "#{filename} does not exist." if !File.exist?(filename)
+      index_key = resource_key(key)
+      raise "#{key} exists." if !force && DFC.exist?(index_key)
+
+      intermediary = encrypt(filename)
+      size,length = DFC.size_shreds(intermediary)
+      tempfiles = Files.new(length)
+
+      Resources.shred(intermediary,tempfiles,size)
       
       fragment_keys = []
       tempfiles.each do |path|
