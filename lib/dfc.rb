@@ -277,26 +277,29 @@ module DFC
       DFC.rename( index_encrypted, index_key )
     end
 
+    def sew(source_files)
+      intermediary = Tempfile.next
+      shredder = Shredder::Files.new(intermediary, source_files)
+      begin
+        shredder.sew
+      rescue Exception
+        File.unlink(intermediary)
+        raise $!
+      ensure
+        source_files.epoched # TODO untouch
+      end
+      return intermediary
+    end
 
     def extract(filename, key, force=false)
       raise "#{filename} exists." if !force && File.exist?(filename)
       index_enc = DFC.find( resource_key(key) )
       raise "#{key} not found" if index_enc.nil?
 
-      intermediary = Tempfile.next # 2 b intermidary
       source_files = Files.new( get_resources(index_enc).map{|rkey| DFC.find(rkey) } ) # what if one is missing? TODO
-
-      shredder = Shredder::Files.new(intermediary, source_files)
-      begin
-        shredder.sew
-        decrypt(intermediary, filename, force)
-      rescue Exception
-        File.unlink(intermediary)
-        raise $!
-      ensure
-        source_files.epoched # TODO untouch
-        File.unlink(intermediary)
-      end
+      intermediary = sew(source_files)
+      decrypt(intermediary, filename, force)
+      File.unlink(intermediary)
     end
 
     def delete(key)
