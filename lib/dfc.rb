@@ -291,13 +291,17 @@ module DFC
       return false
     end
 
+    def encrypt(filename, encrypted = Tempfile.next)
+      DFC.encrypt(filename,encrypted,@passphrase)
+      return encrypted
+    end
+
     def insert(filename, key, force=false)
       raise "#{filename} does not exist." if !File.exist?(filename)
       index_key = resource_key(key)
       raise "#{key} exists." if !force && DFC.exist?(index_key)
 
-      intermediary = Tempfile.next
-      DFC.encrypt(filename,intermediary,@passphrase)
+      intermediary = encrypt(filename)
 
       size = File.size(intermediary)
       length = Math.log( size - 1 + Math::E ).to_i
@@ -328,8 +332,7 @@ module DFC
 
       index_file = Tempfile.next
       File.open(index_file,'w'){|index_handle| index_handle.puts fragment_keys.join("\n") }
-      index_encrypted = Tempfile.next
-      DFC.encrypt(index_file,index_encrypted,@passphrase)
+      index_encrypted = encrypt(index_file)
       Configuration::FILE_CLEAR.call(index_file)
       File.unlink(index_file)
 
