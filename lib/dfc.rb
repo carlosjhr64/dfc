@@ -34,7 +34,7 @@ module DFC
     (DFC.find(key).nil?)? false: true
   end
 
-  def self.epoched(filename)
+  def self.untouch(filename)
     Configuration::UNTOUCH.call(filename)
   end
 
@@ -45,7 +45,7 @@ module DFC
     raise "COLLISSION!!!" if DFC.exist?(key)
     filename = DFC.filename(key)
     File.rename(newfile, filename)
-    DFC.epoched(filename)
+    DFC.untouch(filename)
   end
 
   def self.encrypt(plain,encrypted,passphrase,force=false)
@@ -73,7 +73,7 @@ module DFC
     intermidiary = Tempfile.next
     File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
     DFC.encrypt( intermidiary, encrypted, salt )
-    DFC.epoched(encrypted)
+    DFC.untouch(encrypted)
     # TODO passphrase written to disk :-??
     Configuration::FILE_CLEAR.call(intermidiary) if shred # ...in the interim.
     File.unlink( intermidiary )
@@ -82,7 +82,7 @@ module DFC
   def self.read_string( encrypted, salt, shred=true )
     tempfile = Tempfile.next
     DFC.decrypt( tempfile, encrypted, salt )
-    DFC.epoched(encrypted)
+    DFC.untouch(encrypted)
     passphrase = File.read(tempfile)
     # TODO decrypted passphrase written to disk :-??
     Configuration::FILE_CLEAR.call(tempfile) if shred # ...in the interim.
@@ -160,8 +160,8 @@ module DFC
       self.each{|tempfile| File.unlink(tempfile)}
     end
 
-    def epoched # TODO untouch
-      self.each{|filename| DFC.epoched(filename) }
+    def untouch # TODO untouch
+      self.each{|filename| DFC.untouch(filename) }
     end
   end
 
@@ -195,7 +195,7 @@ module DFC
     def get_resources(encrypted)
       index_decrypted = Tempfile.next
       DFC.decrypt(index_decrypted, encrypted, @passphrase)
-      DFC.epoched(encrypted)
+      DFC.untouch(encrypted)
       resources = []
       File.open(index_decrypted){|index_handle| index_handle.each{|line| resources.push(line.strip) }}
       Configuration::FILE_CLEAR.call(index_decrypted)
@@ -286,9 +286,13 @@ module DFC
         File.unlink(intermediary)
         raise $!
       ensure
-        source_files.epoched # TODO untouch
+        source_files.untouch # TODO untouch
       end
       return intermediary
+    end
+
+    def get_source_files(index_enc)
+      Files.new( get_resources(index_enc).map{|rkey| DFC.find(rkey) } )
     end
 
     def extract(filename, key, force=false)
@@ -296,7 +300,7 @@ module DFC
       index_enc = DFC.find( get_resource_key(key) )
       raise "#{key} not found" if index_enc.nil?
 
-      source_files = Files.new( get_resources(index_enc).map{|rkey| DFC.find(rkey) } ) # what if one is missing? TODO
+      source_files = get_source_files(index_enc)
       intermediary = Resources.sew(source_files)
       decrypt(intermediary, filename, force)
       File.unlink(intermediary)
