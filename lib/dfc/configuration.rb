@@ -54,6 +54,18 @@ module Configuration
     IO.popen( "#{FILE_CRIPTOR} #{yes} --output '#{plain}' #{DECRIPTING} '#{encrypted}'", 'w' ){|pipe| pipe.puts passphrase; pipe.flush }
   }
 
+  PASSWORD_STRENGTH = Proc.new{|username,password|
+      raise "username not set"			if username.nil?
+      raise "password not set"			if password.nil?
+      raise "username too short"		if username.length < 4
+      raise "password too short"		if password.length < 4
+      raise "password must have a \\d"		if password !~ /\d/
+      raise "password must have a [A-Z]"	if password !~ /[A-Z]/
+      raise "password must have a [a-z]"	if password !~ /[a-z]/
+      raise "password must have a \\W"		if password !~ /[a-z]/
+      raise "username taken" if `grep -i #{username} #{WORDS}`.length > 0
+  }
+
 
 end
 end

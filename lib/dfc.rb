@@ -121,15 +121,7 @@ module DFC
   end
 
   def self.password_strength(username,password)
-      raise "username not set"			if username.nil?
-      raise "password not set"			if password.nil?
-      raise "username too short"		if username.length < 4
-      raise "password too short"		if password.length < 4
-      raise "password must have a \\d"		if password !~ /\d/
-      raise "password must have a [A-Z]"	if password !~ /[A-Z]/
-      raise "password must have a [a-z]"	if password !~ /[a-z]/
-      raise "password must have a \\W"		if password !~ /[a-z]/
-      raise "username taken" if `grep -i #{username} #{Configuration::WORDS}`.length > 0
+    Configuration::PASSWORD_STRENGTH.call(username,password)
   end
 
   def self.digest(string)
@@ -241,6 +233,14 @@ module DFC
       end
     end
 
+    def shred(filename)
+      intermediary = encrypt(filename)
+      size,length = DFC.size_shreds(intermediary)
+      tempfiles = Files.new(length)
+      Resources.shred(intermediary,tempfiles,size)
+      return tempfiles
+    end
+
     def create_shred_keys(tempfiles)
       shred_keys = []
       tempfiles.each do |path|
@@ -265,11 +265,7 @@ module DFC
       index_key = get_resource_key(key)
       raise "#{key} exists." if !force && DFC.exist?(index_key)
 
-      intermediary = encrypt(filename)
-      size,length = DFC.size_shreds(intermediary)
-      tempfiles = Files.new(length)
-
-      Resources.shred(intermediary,tempfiles,size)
+      tempfiles = shred(filename)
       shred_keys = create_shred_keys(tempfiles)
       index_encrypted = save_shred_keys(shred_keys)
 
@@ -286,7 +282,7 @@ module DFC
         File.unlink(intermediary)
         raise $!
       ensure
-        source_files.untouch # TODO untouch
+        source_files.untouch
       end
       return intermediary
     end
