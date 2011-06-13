@@ -6,7 +6,7 @@ module Configuration
   ### Files and directories ###
 
 
-  HIDDEN = ENV[:HOME]+'/.dfc'
+  HIDDEN = ENV[:HOME]+'/.dfc2'
   TMP = HIDDEN+'/tmp'
 
   DIRECTORIES = [

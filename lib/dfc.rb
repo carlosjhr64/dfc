@@ -1,43 +1,8 @@
 require 'dfc/configuration'
+gem 'shredder', '~> 0.0'
+require 'shredder'
 
 module DFC
-
-  class Shredder
-    def initialize(filename)
-      @filename = filename
-    end
-
-    def shred(writers,limit=0)
-      shreds = writers.length
-      xor = count = 0
-      reader = File.open(@filename,'r')
-      while byte = reader.getbyte do
-        writers[ count % shreds ].putc byte^xor
-        xor = byte
-        count += 1
-        # note: will not break if limit is zero
-        break if count == limit
-      end
-      reader.close
-      return count
-    end
-
-    def unshred(readers,limit=0)
-      shreds = readers.length
-      xor = count = 0
-      writer = File.open(@filename,'w')
-      while byte = readers[ count % shreds ].getbyte do
-        chr = byte^xor
-        xor = chr
-        writer.putc chr
-        count += 1
-        # note: will not break if limit is zero
-        break if count == limit
-      end
-      writer.close
-      return count
-    end
-  end
 
   @@sequence = 0
 
@@ -165,29 +130,8 @@ module DFC
     Configuration::STRING_DIGEST.call(string)
   end
 
-  class ReopenFile
-    attr_reader :path
-    attr_reader :handle
-    def initialize(path)
-      @path = path
-      @handle = nil
-    end
 
-    def open(mode='r')
-      @handle = File.open(@path,mode)
-    end
-
-    def close
-      @handle.close
-      @handle = nil
-    end
-
-    def unlink
-      File.unlink(@path)
-    end
-  end
-
-  class Tempfile < ReopenFile
+  module Tempfile
 
     @@count = 0
 
@@ -196,45 +140,22 @@ module DFC
       Configuration::TMP+"/scramble.#{$$}.#{@@count}"
     end
 
-    def initialize
-      super(Tempfile.next)
-    end
   end
 
-  class FilesArray < Array
-    def initialize(length)
-      super
-    end
-
-    def open(mode='r')
-      0.upto(self.length-1){|index| self[index].open(mode) }
-    end
-
-    def close
-      0.upto(self.length-1){|index| self[index].close }
+  class Files < Array
+    def initialize( length_or_array )
+      is_array = length_or_array.kind_of?(Array) # is this an array?
+      length = (is_array)? length_or_array.length : length_or_array # then what's the array length?
+      super(length) # self made array of length
+      0.upto(length-1){|index| self[index] = (is_array)? length_or_array[index] : Tempfile.next } # populate array
     end
 
     def unlink
-      0.upto(self.length-1){|index| self[index].unlink }
-    end
-  end
-
-  class Tempfiles < FilesArray
-    def initialize(length)
-      super
-      0.upto(length-1){|index| self[index] = Tempfile.new }
-    end
-  end
-
-  class SourceFiles < FilesArray
-    def initialize(sources)
-      length = sources.length
-      super(length)
-      0.upto(length-1){|index| self[index] = ReopenFile.new( DFC.find(sources[index]) ) }
+      self.each{|tempfile| File.unlink(tempfile)}
     end
 
-    def epoched
-      0.upto(self.length-1){|index| DFC.epoched( self[index].path ) }
+    def epoched # TODO untouch
+      self.each{|filename| DFC.epoched(filename) }
     end
   end
 
@@ -291,9 +212,14 @@ module DFC
       return false
     end
 
-    def encrypt(filename, encrypted = Tempfile.next)
-      DFC.encrypt(filename,encrypted,@passphrase)
+    def encrypt(filename, encrypted=Tempfile.next, force=true)
+      DFC.encrypt(filename, encrypted, @passphrase, force)
       return encrypted
+    end
+
+    def decrypt(encrypted, filename=Tempfile.next, force=true)
+      DFC.decrypt(filename, encrypted, @passphrase, force)
+      return filename
     end
 
     def insert(filename, key, force=false)
@@ -302,33 +228,27 @@ module DFC
       raise "#{key} exists." if !force && DFC.exist?(index_key)
 
       intermediary = encrypt(filename)
-
       size = File.size(intermediary)
       length = Math.log( size - 1 + Math::E ).to_i
+      tempfiles = Files.new(length)
 
-      tempfiles = Tempfiles.new(length)
-
-      shredder = Shredder.new(intermediary)
-      tempfiles.open('w')
+      shredder = Shredder::Files.new(intermediary,tempfiles)
       begin
-        count = shredder.shred(tempfiles.map{|file| file.handle},size+1)
-        raise "There is a bug!  Unconfirmed file length (#{count} != #{size})." if count != size
+        # if it goes past size, there's a bug
+        raise "unconfirmed file length" if shredder.shred(size+1) != size
       rescue Exception
         tempfiles.unlink
         raise $!
       ensure
-        tempfiles.close
         File.unlink(intermediary)
       end
-
+      
       fragment_keys = []
-      tempfiles.each do |tempfile|
-        path = tempfile.path
+      tempfiles.each do |path|
         fragment_key = resource_key( DFC.sha1sum(path) )
         fragment_keys.push( fragment_key )
         DFC.rename( path, fragment_key )
       end
-      fragment_keys.push( count.to_s )
 
       index_file = Tempfile.next
       File.open(index_file,'w'){|index_handle| index_handle.puts fragment_keys.join("\n") }
@@ -343,27 +263,21 @@ module DFC
 
     def extract(filename, key, force=false)
       raise "#{filename} exists." if !force && File.exist?(filename)
-      index_key = resource_key(key)
-      index_enc = DFC.find(index_key)
+      index_enc = DFC.find( resource_key(key) )
       raise "#{key} not found" if index_enc.nil?
 
-      resources = get_resources(index_enc)
-      count = resources.pop.to_i
-      source_files = SourceFiles.new(resources)
-      length = resources.length
-
       intermediary = Tempfile.next # 2 b intermidary
-      shredder = Shredder.new(intermediary)
-      source_files.open
+      source_files = Files.new( get_resources(index_enc).map{|rkey| DFC.find(rkey) } ) # what if one is missing? TODO
+
+      shredder = Shredder::Files.new(intermediary, source_files)
       begin
-        shredder.unshred( source_files.map{|file| file.handle} )
-        DFC.decrypt(filename,intermediary,@passphrase,force)
+        shredder.sew
+        decrypt(intermediary, filename, force)
       rescue Exception
         File.unlink(intermediary)
         raise $!
       ensure
-        source_files.close
-        source_files.epoched
+        source_files.epoched # TODO untouch
         File.unlink(intermediary)
       end
     end
