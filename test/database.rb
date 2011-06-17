@@ -7,32 +7,18 @@ end
 
 readme = './README.txt'
 outfile = './README.out'
-
-database = DFC::Database.new('A passphrase for my database', ['./tmp/A','./tmp/B','./tmp/C'] )
-error = false
-begin
-  database.ci('README',readme)
-rescue StandardError
-  puts $!
-  error = ($!.message == 'Not a valid key.')
-end
-assert(error)
-
 File.unlink(outfile) if File.exist?(outfile)
 
-error = false
-begin
-  database.co('README',outfile)
-rescue StandardError
-  puts $!
-  error = ($!.message == 'Key not found.')
-end
-assert(error)
-
-key = Digest::SHA1.hexdigest('README')
+database = DFC::Database.new('A passphrase for my database', ['./tmp/A','./tmp/B','./tmp/C'] )
+key = 'README'
 puts key
 
-database.delete(key) if database.exist?(key)
+puts "Exist?"
+if database.exist?(key) then
+  puts "Yes.. then delete"
+  database.delete(key)
+  puts "OK?"
+end
 database.ci(key,readme)
 
 database.co(key,outfile)

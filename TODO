@@ -1,4 +1,6 @@
 
+a file of resources NOT NECCESSARY!!! :))
+
 gpg --batch --passphrase-fd 0 --symmetric
   First line is passphrase.
 

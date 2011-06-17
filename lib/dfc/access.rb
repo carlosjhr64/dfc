@@ -3,6 +3,7 @@ require 'dfc/sequence'
 module DFC
 
   # Access to the directories
+  # Meant to be subclassed.  All methods private or protected.
   class Access
     KEY_PATTERN = Regexp.new('^[0123456789abcdef]{40}$')
 
@@ -55,17 +56,23 @@ module DFC
     def writer(key,force=false)
       exist!(key) if !force
       filename = filesucc(key)
-      File.open(filename,'wb'){|writer| yield(writer)}
+      if block_given? then
+        File.open(filename,'wb'){|writer| yield(writer)}
+      else
+        return File.open(filename,'wb')
+      end
       true
     end
 
     def reader(key)
       filename = find(key)
-      File.open(filename,'r'){|reader| yield(reader)}
+      if block_given? then
+        File.open(filename,'r'){|reader| yield(reader)}
+      else
+        return File.open(filename,'r')
+      end
       true
     end
-
-    public
 
     def exist?(key)
       (find!(key).nil?)? false: true
