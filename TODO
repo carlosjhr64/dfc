@@ -1,3 +1,9 @@
+
+gpg --batch --passphrase-fd 0 --symmetric
+  First line is passphrase.
+
+Don't forget touch/untouch
+
 Currently developing on ~/bin/dfc
 Got test user:
 	tE2! / tE2!

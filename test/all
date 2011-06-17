@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+require 'find'
+require 'dfc/configuration'
+
+EPOCH = Time.at(0)
+Find.find(DFC::Configuration::HIDDEN) do |file|
+  if file =~ /\/[abcdef1234567890]{40}$/ then
+    puts file if (File.mtime( file ) > EPOCH) || (File.atime( file ) > EPOCH)
+  end
+end

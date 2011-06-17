@@ -4,100 +4,94 @@ require 'shredder'
 
 module DFC
 
-  def self.size_shreds(filename)
-    size = File.size(filename)
-    shreds = Math.log( size - 1 + Math::E ).to_i
-    return size,shreds
-  end
+  # PROCEDURES ?
 
-  @@sequence = 0
-
-  def self.directories
-    Configuration::DIRECTORIES
-  end
-
-  def self.filename( key )
-    @@sequence += 1
-    dir = DFC.directories
-    "#{dir[ @@sequence % dir.length ]}/#{key}"
-  end
-
-  def self.find(key)
-    DFC.directories.each do |directory|
-      filename = "#{directory}/#{key}"
-      return filename if File.exist?(filename)
-    end
-    return nil
-  end
-
-  def self.exist?(key)
-    (DFC.find(key).nil?)? false: true
-  end
-
-  def self.untouch(filename)
-    Configuration::UNTOUCH.call(filename)
-  end
-
-  def self.rename( newfile, key )
-    # If a collision occurs, it's a bug.
-    # I'm writting this as if sha1sums don't collide.
-    # Virtually never happens, but it's not impossible.
-    raise "COLLISSION!!!" if DFC.exist?(key)
-    filename = DFC.filename(key)
-    File.rename(newfile, filename)
-    DFC.untouch(filename)
-  end
-
-  def self.encrypt(plain,encrypted,passphrase,force=false)
-    raise "Plain file #{plain} does not exist" if !File.exist?(plain)
-    Configuration::FILE_ENCRYPT.call(plain,encrypted,passphrase,force)
-    raise "Encripted #{encrypted} not created" if !File.exist?(encrypted)
-  end
-
-  def self.decrypt(plain,encrypted,passphrase,force=false)
-    raise "Encripted #{encrypted} does not exist" if !File.exist?(encrypted)
-    Configuration::FILE_DECRYPT.call(plain,encrypted,passphrase,force)
-    raise "Plain file #{plain} not created" if !File.exist?(plain)
+  def self.digest(string)
+    Configuration::STRING_DIGEST.call(string)
   end
 
   def self.sha1sum(filename)
     Configuration::FILE_DIGEST.call(filename)
   end
 
-  def self.login_exist?(login)
-    sleep(1) # to avoid login mining
-    DFC.exist?(login)
+  def self.password_strength(username,password)
+    Configuration::PASSWORD_STRENGTH.call(username,password)
   end
 
-  def self.write_string( passphrase, encrypted, salt, shred=true )
-    intermidiary = Tempfile.next
-    File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
-    DFC.encrypt( intermidiary, encrypted, salt )
-    DFC.untouch(encrypted)
-    # TODO passphrase written to disk :-??
-    Configuration::FILE_CLEAR.call(intermidiary) if shred # ...in the interim.
-    File.unlink( intermidiary )
-  end
-
-  def self.read_string( encrypted, salt, shred=true )
-    tempfile = Tempfile.next
-    DFC.decrypt( tempfile, encrypted, salt )
-    DFC.untouch(encrypted)
-    passphrase = File.read(tempfile)
-    # TODO decrypted passphrase written to disk :-??
-    Configuration::FILE_CLEAR.call(tempfile) if shred # ...in the interim.
-    File.unlink(tempfile)
-    return passphrase
-  end
-
-  def self.register(login,salt,passphrase='')
-    raise "Username exists" if DFC.login_exist?(login)
+  def self.passphrase
     while passphrase.length < 64 do
       passphrase = (256).times.map{ rand(256).chr }.select{|char| (char=~/[[:graph:]]/) && (char=~/[^'"`]/) }.inject(''){|string,char| string+char}
     end
-    DFC.write_string( passphrase, DFC.filename(login), salt )
+  end
+ 
+  def self.size_shreds(filename)
+    size = File.size(filename)
+    shreds = Math.log( size - 1 + Math::E ).to_i
+    return size,shreds
+  end
 
-    passphrase
+  def self.untouch(filename)
+    Configuration::UNTOUCH.call(filename)
+  end
+
+  def Sequence
+    def initialize
+      @sequence = 0
+    end
+
+    def succ
+      @sequence += 1
+    end
+  end
+
+  class Authentication
+    def initialize(access)
+      @access = access
+      @passphrase = nil
+    end
+
+    def auth?
+      !@passphrase.nil?
+    end
+
+    def authenticate(username,password)
+      login = DFC.digest(username+password)
+      sleep(1) # prevent mining
+      raise "Not registered" if @access.exist?(login)
+      # @passphrase = TODO
+    end
+
+    def register(username,password)
+      # TODO username/password strength
+      login = DFC.digest(username+password)
+      sleep(1) # prevent mining
+      raise "Registered" if @access.exist?(login)
+      # @passphrase = TODO
+    end
+  end
+
+  def Database
+    def initialize( username, password, directories=Configuration::DIRECTORIES )
+      @access = Access.new(directories)
+      @tempfiles = Tempfiles.new
+    end
+
+    def write_string( passphrase, encrypted, salt, shred=true )
+      intermidiary = Tempfile.next
+      File.open( intermidiary, 'w' ){|fh| fh.write passphrase }
+      DFC.encrypt( intermidiary, encrypted, salt )
+      DFC.untouch(encrypted)
+      # TODO passphrase written to disk :-??
+      Configuration::FILE_CLEAR.call(intermidiary) if shred # ...in the interim.
+      File.unlink( intermidiary )
+    end
+
+    def register(login,salt,passphrase='')
+      raise "Username exists" if login_exist?(login)
+      passphrase = DFC.passphrase
+      @access.write_string( passphrase, filesucc(login), salt )
+      return passphrase
+    end
   end
 
   def self.get_passphrase(login,salt,newuser)
@@ -120,25 +114,6 @@ module DFC
     end
   end
 
-  def self.password_strength(username,password)
-    Configuration::PASSWORD_STRENGTH.call(username,password)
-  end
-
-  def self.digest(string)
-    Configuration::STRING_DIGEST.call(string)
-  end
-
-
-  module Tempfile
-
-    @@count = 0
-
-    def self.next
-      @@count += 1
-      Configuration::TMP+"/scramble.#{$$}.#{@@count}"
-    end
-
-  end
 
   class Files < Array
     def initialize( length_or_array )
