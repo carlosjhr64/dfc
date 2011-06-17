@@ -1,3 +1,4 @@
+require 'stringio'
 gem 'symmetric_gpg', '~> 1.0'
 require 'symmetric_gpg'
 require 'dfc/access'
@@ -18,14 +19,39 @@ module DFC
       Digest::SHA1.hexdigest(key+@passphrase)
     end
 
+    alias super_delete delete
     def delete(key)
       resource_key = digest(key)
       super(resource_key)
     end
 
+    alias super_exist? exist?
     def exist?(key)
       resource_key = digest(key)
       super(resource_key)
+    end
+
+    def [](key)
+      resource_key = digest(key)
+      if super_exist?(resource_key) then
+        reader(resource_key) do |encrypted|
+          @gpg.encrypted = encrypted
+          @gpg.plain  = StringIO.new
+          @gpg.decrypt
+          return @gpg.plain.string
+        end
+      end
+      nil 
+    end
+
+    def []=(key,value)
+      resource_key = digest(key)
+      super_delete(resource_key) if super_exist?(resource_key)
+      writer(resource_key) do |encrypted|
+        @gpg.encrypted = encrypted
+        @gpg.plain  = StringIO.new(value)
+        @gpg.encrypt
+      end
     end
 
     def ci(key,filename,force=false)

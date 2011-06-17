@@ -22,7 +22,9 @@ module DFC
     def find!(key)
       @directories.each do |directory|
         filename = File.join(directory,key)
-        return filename if File.exist?(filename)
+        if File.exist?(filename) then
+          return filename
+        end
       end
       return nil
     end

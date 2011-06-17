@@ -24,4 +24,8 @@ database.ci(key,readme)
 database.co(key,outfile)
 
 raise "ci/co failed" if `diff #{readme} #{outfile}`.strip.length != 0
+
+database['login'] = 'What, what, what!?'
+puts database['login']
+
 puts "All tests passed! :)"
