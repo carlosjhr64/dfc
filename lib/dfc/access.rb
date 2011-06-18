@@ -12,7 +12,7 @@ module DFC
       @sequence = Sequence.new
     end
 
-    private
+    private	if !$test
 
     def filesucc(key)
       raise "Not a valid key." if !(key=~KEY_PATTERN)
@@ -40,7 +40,7 @@ module DFC
       raise "COLLISSION!!!" if find!(key)
     end
 
-    protected
+    protected	if !$test
 
     def insert( infile, key )
       exist!(key)

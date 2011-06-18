@@ -23,7 +23,6 @@ module Configuration
 
   UNTOUCH = Proc.new{|filename| File.utime( 0, 0, filename ) }
   TOUCH = Proc.new{|filename| File.utime( now=Time.now.to_i, now, filename ) }
-
   FILE_CLEAR = Proc.new{|filename| system( "#{FILE_CLEARER} #{filename}" ) }
 end
 end

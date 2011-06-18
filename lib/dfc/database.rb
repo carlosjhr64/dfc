@@ -1,5 +1,6 @@
 require 'stringio'
-gem 'symmetric_gpg', '~> 1.0'
+require 'digest'
+gem 'symmetric_gpg', '~> 1.1'
 require 'symmetric_gpg'
 require 'dfc/access'
 
@@ -8,24 +9,42 @@ module DFC
   class Database < Access
     KEY_PATTERN = Regexp.new('[^\.][^.\d]$')
 
-    def initialize(passphrase,directories)
-      @passphrase = passphrase
-      @gpg = SymmetricGPG::IOs.new(passphrase)
+    def initialize(directories, passphrase=nil)
       super(directories)
+      @gpg = SymmetricGPG::IOs.new(passphrase)
+    end
+
+    protected
+
+    def passphrase=(passphrase)
+      @gpg.passphrase = passphrase
+    end
+
+    def passphrase
+      @gpg.passphrase
     end
 
     def digest(key)
-      raise "Not a valid key." if !(key=~KEY_PATTERN)
-      Digest::SHA1.hexdigest(key+@passphrase)
+      raise "not a valid key." if !(key=~KEY_PATTERN)
+      passphrase = @gpg.passphrase
+      raise "passphrase not set" if passphrase.nil?
+      Digest::SHA1.hexdigest(key+passphrase)
     end
 
     alias super_delete delete
+    alias super_exist? exist?
+
+    public
+
+    def key_pattern
+      KEY_PATTERN
+    end
+
     def delete(key)
       resource_key = digest(key)
       super(resource_key)
     end
 
-    alias super_exist? exist?
     def exist?(key)
       resource_key = digest(key)
       super(resource_key)

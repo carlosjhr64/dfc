@@ -9,7 +9,7 @@ readme = './README.txt'
 outfile = './README.out'
 File.unlink(outfile) if File.exist?(outfile)
 
-database = DFC::Database.new('A passphrase for my database', ['./tmp/A','./tmp/B','./tmp/C'] )
+database = DFC::Database.new( ['./tmp/A','./tmp/B','./tmp/C'], 'A passphrase for my database' )
 key = 'README'
 puts key
 
@@ -25,7 +25,9 @@ database.co(key,outfile)
 
 raise "ci/co failed" if `diff #{readme} #{outfile}`.strip.length != 0
 
-database['login'] = 'What, what, what!?'
-puts database['login']
+what = 'What, what, what!?'
+database['login'] = what
+what_not = database['login']
+assert( what == what_not )
 
 puts "All tests passed! :)"

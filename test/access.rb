@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
+$test = true
+
 require 'dfc/access'
-require 'dfc/configuration'
 require 'digest'
 
 def assert( boolean )
@@ -9,7 +10,7 @@ end
 
 include DFC
 
-access = Access.new( Configuration::DIRECTORIES )
+access = Access.new( ['./tmp/A','./tmp/B','./tmp/C'] )
 
 key = Digest::SHA1.hexdigest('Hello World')
 puts "Verify that it looks reasonably"
@@ -53,14 +54,14 @@ end
 begin
   assert( access.exist?(key) == false)
   `touch temp`
-  filename = access.insert( 'temp', key )
+  access.insert( 'temp', key )
   assert( access.exist?(key) == true)
 rescue Exception
   puts $!
   puts $!.backtrace
   raise $!
 ensure
-  File.unlink(filename) if File.exist?(filename)
+  access.delete(key) if access.exist?(key)
 end
 
 puts "All tests passed"
