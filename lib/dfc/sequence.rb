@@ -1,5 +1,5 @@
 module DFC
-
+  # sequence numbers
   class Sequence
     def initialize
       @sequence = 0

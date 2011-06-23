@@ -1,7 +1,5 @@
-require 'dfc/sequence'
-
 module DFC
-
+  # unique names for temporary files.
   class Tempfile
 
     def initialize(directory)
@@ -11,7 +9,7 @@ module DFC
     end
 
     def succ
-      File.join(Configuration::TMP,"#{$$}.#{@base}.#{@sequence.succ}")
+      File.join(@directory,"#{$$}.#{@base}.#{@sequence.succ}")
     end
 
   end

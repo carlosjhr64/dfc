@@ -1,6 +1,4 @@
-gem 'realrand', '~> 1.0' # I have realrand-1.0.4
 require 'random/online'
-require 'timeout'
 
 module DFC
   # RndPwds helps create and validate passwords and passphrases.

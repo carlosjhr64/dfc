@@ -1,19 +1,24 @@
 #!/usr/bin/evn ruby
-require 'dfc/tempfile'
-require 'dfc/configuration'
+require 'dfc'
 
-def assert(boolean)
-  raise "nope" if !boolean
+def assert(boolean, msg='')
+  raise "Bad #{msg}" if !boolean
 end
 
 include DFC
 
-tempfile = Tempfile.new(Configuration::TMP)
-
+tempfile = Tempfile.new('./tmp')
 path = tempfile.succ
-assert( path =~ /\/\d+\.1\.1$/ )
-
+assert( path == "./tmp/#{$$}.1.1", path)
 path = tempfile.succ
-assert( path =~ /\/\d+\.1\.2$/ )
+assert( path == "./tmp/#{$$}.1.2", path)
+
+tempfile = Tempfile.new('./tmp')
+path = tempfile.succ
+assert( path == "./tmp/#{$$}.2.1", path)
+path = tempfile.succ
+assert( path == "./tmp/#{$$}.2.2", path)
+path = tempfile.succ
+assert( path == "./tmp/#{$$}.2.3", path)
 
 puts "tempfile: All test passed!"
