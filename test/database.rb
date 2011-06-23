@@ -1,33 +1,37 @@
-require 'digest'
 require 'dfc/database'
 
 def assert(boolean)
   raise "Got one wrong" if !boolean
 end
 
-readme = './README.txt'
-outfile = './README.out'
+test = './test.txt'
+outfile = './test.out'
 File.unlink(outfile) if File.exist?(outfile)
 
 database = DFC::Database.new( ['./tmp/A','./tmp/B','./tmp/C'], 'A passphrase for my database' )
-key = 'README'
-puts key
+string = 'test'
+puts string
 
 puts "Exist?"
-if database.exist?(key) then
-  puts "Yes.. then delete"
-  database.delete(key)
-  puts "OK?"
+if database.delete(string) then
+  puts "Yes, deleted."
+else
+  puts "No"
 end
-database.ci(key,readme)
 
-database.co(key,outfile)
+puts "A"
+database.ci(string,test)
 
-raise "ci/co failed" if `diff #{readme} #{outfile}`.strip.length != 0
+puts "B"
+database.co(string,outfile)
+puts "C"
+puts "diff #{test} #{outfile}"
+raise "ci/co failed" if `diff #{test} #{outfile}`.strip.length != 0
+puts database.verify
 
-what = 'What, what, what!?'
-database['login'] = what
-what_not = database['login']
-assert( what == what_not )
-
-puts "All tests passed! :)"
+#what = 'What, what, what!?'
+#database['login'] = what
+#what_not = database['login']
+#puts "Whatnot: #{what_not}"
+#assert( what == what_not )
+#puts "All tests passed! :)"
