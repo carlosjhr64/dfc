@@ -27,13 +27,14 @@ module DFC
       !self.passphrase.nil?
     end
 
-    def register(username,password)
+    def register(username,password,&block)
+      raise "Need passphrase generating block" if block.nil?
       login = get_login(username,password)
       # going to save the passphrase in login using login as the passphrase.
       self.passphrase = login
       raise "login exist" if self.exist?( login )
       # create a new passphrase
-      passphrase = @rndpwd.passphrase
+      passphrase = block.call
       self[login] = passphrase
       # then set the database passphrase
       self.passphrase = passphrase

@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+require 'dfc'
+
+hidden, directories = DFC::HIDDEN, DFC::DIRECTORIES
+if !File.exist?(hidden) then
+  DFC::Install.new(hidden,directories).install
+end
+recognized = directories.inject(true){|boolean,directory| boolean && File.exist?(directory)}
+if !recognized then
+  puts <<EOT
+Did not recognized #{hidden} as a directory for this application.
+Expected to see:
+EOT
+  puts directories
+  puts <<EOT
+It's possible there's an applicaction collision for #{hidden}, or
+that there was a failed installation attempt.
+EOT
+  exit
+else
+  password = Password.get("Password: ")
+  database = DFC::Database.new(directories,password)
+  if passphrase = database['passphrase'] then
+    database = DFC::Database.new(directories,passphrase)
+    # TODO you're now logged in to your passphrase space.
+  else
+    puts "Did you forget your password?"
+    # TODO if yes, need to redo security questions.
+  end
+end

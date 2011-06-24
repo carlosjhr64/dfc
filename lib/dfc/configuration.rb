@@ -4,25 +4,17 @@ module Configuration
 
   ### Files and directories ###
 
-  HIDDEN = ENV[:HOME]+'/.dfc2'
-  TMP = HIDDEN+'/tmp'
+  # This application's hidden directory for the user
+  HIDDEN = File.join( ENV[:HOME], '.dfc2' )
 
+  # The dark databsae
   DIRECTORIES = [
-	HIDDEN+'/A', #'/red',
-	HIDDEN+'/B', #'/green',
-	HIDDEN+'/C', #'/blue',
+	File.join(HIDDEN,'A'),
+	File.join(HIDDEN,'B'),
+	File.join(HIDDEN,'C'),
     ]
 
-  #### Binaries and their options ###
-
-  FILE_CLEARER = 'shred'
-
-  FILE_DIGESTOR = 'sha1sum'
-
-  ### Procedures ###
-
-  UNTOUCH = Proc.new{|filename| File.utime( 0, 0, filename ) }
-  TOUCH = Proc.new{|filename| File.utime( now=Time.now.to_i, now, filename ) }
-  FILE_CLEAR = Proc.new{|filename| system( "#{FILE_CLEARER} #{filename}" ) }
+  # Just a package for all of the above
+  PARAMETERS = [HIDDEN,DIRECTORIES]
 end
 end

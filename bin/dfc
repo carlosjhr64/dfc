@@ -145,7 +145,8 @@ def execute(dfc,command,key,filename)
     File.open( DFC::Configuration::HIDDEN+'log','a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
   end
 end
-
+puts "HERE"
+exit
 $options = ''
 while ARGV[0]=~/^-/ do
   $options += ARGV.shift

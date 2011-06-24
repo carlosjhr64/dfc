@@ -3,20 +3,22 @@ module DFC
   module SecurityQuestions
 
     QUESTIONS = [
-	"What is your favorite word?  ",
-	"What school did you attend for sixth grade?  ",
-	"What are the last 4 digits of your Social Security number?  ",
-	"What is your middle name?  ",
-	"What is the name of your first pet?  ",
-	"In what city where you born?  ",
-	"When is your birthdate (yyyy-mm-dd)?  ",
-	"What is your mother's maiden name?  ",
-	"What is the first name of your biggest crush?  ",
-	"What is the first name of your first crush?  ",
-	"Which was your favorite childhood movie?  ",
-	"Which was your favorite teen movie?  ",
-	"What is the name of your favorite childhood friend?  ",
-	"What was your favorite band or singer in junior high?  ",
+	"What is your favorite word?  ",					# 1
+	"What school did you attend for sixth grade?  ",			# 2
+	"What are the last 4 digits of your Social Security number?  ",		# 3
+	"What is your middle name?  ",						# 4
+	"What is the name of your first pet?  ",				# 5
+	"In what city where you born?  ",					# 6
+	"When is your birthdate (yyyy-mm-dd)?  ",				# 7
+	"What is your mother's maiden name?  ",					# 8
+	"What is the first name of your biggest crush?  ",			# 9
+	"What is the first name of your first crush?  ",			# 10
+	"What is the name of your first boy/girl friend?  ",			# 11
+	"Which was your favorite childhood movie?  ",				# 12
+	"Which was your favorite teen movie?  ",				# 13
+	"What is the name of your favorite childhood friend?  ",		# 14
+	"What was your favorite band or singer in junior high?  ",		# 15
+	"What is your favorite game?  ",					# 16
     ]
 
     INSTRUCTIONS = <<EOT
@@ -29,7 +31,7 @@ This one is the most likely one you'll fail to replicate later, so think about i
 Your first answer will not be shown, but
 the rest will be visible so beware of evesdroppers.
 
-Press enter where ready.
+Press [Enter] where ready.
 EOT
 
     AGAIN = <<EOT
@@ -39,6 +41,7 @@ EOT
     INSTRUCTIONS2 = <<EOT
 Now replicate your anwers.
 If you're unable to do so, you'll need to start over.
+Pres [Enter] to continue.
 EOT
 
     FAIL_MESSAGE = <<EOT
