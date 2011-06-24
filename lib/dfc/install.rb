@@ -1,19 +1,15 @@
 module DFC
-  class Install
+  module Install
     def self.ynask(prompt)
       print "#{prompt} (Y/n)? "
       char = $stdin.gets.strip
       char == 'Y'
     end
 
-    def initialize(*parameters)
-      @hidden, @directories, @pasphrase = *parameters
-    end
-
-    def proceed?
+    def self.proceed?
       system('clear')
       print <<EOT
-The hidden directory for dfc, #{@hidden}, needs to be created.
+The hidden directory for dfc, #{HIDDEN}, needs to be created.
 It will contain user specific data.
 To complete the install, you'll be asked some security questions that will take a few minutes to complete.
 EOT
@@ -48,18 +44,19 @@ EOT
       return password
     end
 
-    def install
-      raise "#{@hidden} exists" if File.exist?(@hidden)
-      exit unless proceed?
+    def self.install
+      raise "#{HIDDEN} exists" if File.exist?(HIDDEN)
+      exit unless Install.proceed?
       passphrase = SecurityQuestions.hash
       password = Install.get_password
-      puts "mkdir #{@hidden}"
-      Dir.mkdir(@hidden,0700)
-      @directories.each do |subdirectory|
-        puts "mkdir #{subdirectory}"
-        Dir.mkdir(subdirectory,0700)
+      Dir.mkdir(HIDDEN,0700)
+      [ File.join(HIDDEN,DARK), File.join(HIDDEN,DEPOSITORY) ].each do |subdir|
+        Dir.mkdir(subdir,0700)
+        [ File.join(subdir,YING), File.join(subdir,YANG) ].each do |subdir|
+          Dir.mkdir(subdir,0700)
+        end
       end
-      database = DFC::Database.new(@directories,password)
+      database = DFC::Database.new(DFC.dark,password)
       database['passphrase'] = passphrase
     end
   end
