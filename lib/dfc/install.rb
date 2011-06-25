@@ -6,7 +6,7 @@ module DFC
       char == 'Y'
     end
 
-    def self.proceed?
+    def self.proceed_with_install?
       system('clear')
       print <<EOT
 The hidden directory for dfc, #{HIDDEN}, needs to be created.
@@ -46,7 +46,7 @@ EOT
 
     def self.install
       raise "#{HIDDEN} exists" if File.exist?(HIDDEN)
-      exit unless Install.proceed?
+      exit unless Install.proceed_with_install?
       passphrase = SecurityQuestions.hash
       password = Install.get_password
       Dir.mkdir(HIDDEN,0700)
@@ -56,6 +56,50 @@ EOT
           Dir.mkdir(subdir,0700)
         end
       end
+      database = DFC::Database.new(DFC.dark,password)
+      database['passphrase'] = passphrase
+    end
+
+    def self.proceed_with_reset?
+      system('clear')
+      puts <<EOT
+You can get your depository passphrase back by answering your security questions exactly as you did before.
+There is no check for validity... gpg will just fail to decrypt if you get the wrong passphrase.
+But without your old password you won't be able to decrypt the data you chose to keep dark.
+If there is no chance of getting the old password back, then there is no reason to keep the dark files.
+
+You'll be asked if you want to delete your dark files.
+And after that you'll go through your security questions.
+Enter 'Y' to continue, anything else to quit.
+EOT
+      Install.ynask('Proceed?')
+    end
+
+    def self.delete_dark?
+      system('clear')
+      if Install.ynask('Do you want to delete the dark files?') then
+        return Install.ynask('Are your sure?')
+      end
+      false
+    end
+
+    def self.delete_dark!
+      puts "OK, deleting dark files..."
+      DFC.dark.each do |directory|
+        Find.find(directory) do |filename|
+          File.unlink(filename) if File.file?(filename)
+        end
+      end
+      puts "Dark files deleted.  Press [Enter] to continue."
+      $stdin.gets
+    end
+
+    def self.reset
+      raise "#{HIDDEN} does not exists" if !File.exist?(HIDDEN) # just a quick goof check
+      exit unless Install.proceed_with_reset?
+      Install.delete_dark! if Install.delete_dark?
+      passphrase = SecurityQuestions.hash
+      password = Install.get_password
       database = DFC::Database.new(DFC.dark,password)
       database['passphrase'] = passphrase
     end

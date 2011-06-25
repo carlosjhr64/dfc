@@ -2,6 +2,7 @@ gem 'ruby-password', '~> 0.15'
 
 autoload :Digest, 'digest'
 autoload :Timeout, 'timeout'
+autoload :Find, 'find'
 autoload :Password, 'password' # ruby-password
 
 module DFC

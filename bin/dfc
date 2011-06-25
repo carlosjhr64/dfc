@@ -86,7 +86,8 @@ while !(passphrase = database['passphrase']) do
   sleep(1)
   print "Forget your password(Y/n)? "
   if $stdin.gets.strip == 'Y' then
-    exit # TODO
+    DFC::Install.reset
+    puts "OK, now back to where we were..."
   end
   password = Password.get("Password: ")
   database = DFC::Database.new(dark,password)
