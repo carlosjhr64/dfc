@@ -19,13 +19,16 @@ module DFC
 	"What is the name of your favorite childhood friend?  ",		# 14
 	"What was your favorite band or singer in junior high?  ",		# 15
 	"What is your favorite game?  ",					# 16
+	"What is your favorite book?  ",					# 17
+	"Who's you favorite actor/actress?  ",					# 18
     ]
 
     INSTRUCTIONS = <<EOT
 Answer these security questions any way you like (with gibberish even), but
 you need to be able to replicate your answers.
-Your answers are not stored, they're (strip-ed and) used to feed into Digest::SHA256.
+Your answers are not stored, they're (strip-ed and) used to feed into Digest::SHA256 to create a passphrase.
 IF YOU FORGET HOW YOU ANSWERED ANY OF THESE QUESTIONS YOU'LL LOOSE YOUR DATA!
+So it's not about giving the right anwser, it's about getting the right passphrase.
 The first question will be "What is you favorite word?"
 This one is the most likely one you'll fail to replicate later, so think about it.
 Your first answer will not be shown, but
