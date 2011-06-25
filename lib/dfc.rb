@@ -22,10 +22,9 @@ module DFC
     [ File.join(HIDDEN,DEPOSITORY,YING), File.join(HIDDEN,DEPOSITORY,YANG) ]
   end
 
-  autoload :Tempfile, 'dfc/tempfile'
   autoload :Sequence, 'dfc/sequence'
   autoload :SecurityQuestions, 'dfc/security_questions'
-  autoload :RndPwds, 'dfc/rndpwds'
   autoload :Install, 'dfc/install'
   autoload :Database, 'dfc/database'
+  autoload :Access, 'dfc/access'
 end
