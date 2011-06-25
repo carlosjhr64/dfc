@@ -1,17 +1,15 @@
+TODO
 
-do a checksum of ci'ins to verify success?
+	Set timestamps to EPOCH
+	Don't forget touch/untouch
+		It really is neccessary!!!!
 
-a file of resources NOT NECCESSARY!!! :))
+DONE
 
-gpg --batch --passphrase-fd 0 --symmetric
-  First line is passphrase.
+	do a checksum of ci'ins to verify success?
 
-Don't forget touch/untouch
+	a file of resources NOT NECCESSARY!!! :))
 
-Currently developing on ~/bin/dfc
-Got test user:
-	tE2! / tE2!
-Added one resource:
-	test
+	gpg --batch --passphrase-fd 0 --symmetric
+	First line is passphrase.
 
-Set timestamps to EPOCH
