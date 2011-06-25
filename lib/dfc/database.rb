@@ -17,7 +17,7 @@ module DFC
       def @gpg.verify
 
          sha = Digest::SHA1.new
-         File.open(@plain,'r') do |filehandle|
+         File.open(self.plain,'r') do |filehandle|
            while c = filehandle.getc do
              sha.update(c)
            end
@@ -25,7 +25,7 @@ module DFC
          hexdigest1 = sha.hexdigest
 
          sha = Digest::SHA1.new
-         _dec do |stdout| 
+         self._dec do |stdout| 
            while c = stdout.getc do
              sha.update(c)
            end
@@ -55,7 +55,7 @@ module DFC
       shreds = []
       count = 0
       shred = string + ".#{count}"
-      while filename = find(shred) do
+      while filename = self.find(shred) do
         shreds.push(filename)
         count += 1
         shred = string + ".#{count}"
@@ -68,7 +68,7 @@ module DFC
       validate(string)
   
       shreds = []
-      number.times{|count| shreds.push(filesucc( string + ".#{count}" )) }
+      number.times{|count| shreds.push(self.filesucc( string + ".#{count}" )) }
 
       return shreds
     end
@@ -98,6 +98,7 @@ module DFC
       if shreds = find_shreds(string) then
         @gpg.encrypted = shreds
         @gpg.force = true # has no effect, but... called for by symmetry.
+        untouch	if $dark
         return @gpg.sew # string version
       end
       return nil
@@ -112,6 +113,11 @@ module DFC
       @gpg.plain  = value
       @gpg.force = true
       @gpg.shred # string version
+      untouch	if $dark
+    end
+
+    def untouch
+      @gpg.encrypted.each{|filename| File.utime( 0, 0, filename )}
     end
 
     def ci(string,filename,force=false)
@@ -127,6 +133,7 @@ module DFC
       @gpg.force = force
       @gpg.encrypt # file version
       raise "Checkin failed" unless verify
+      untouch	if $dark
     end
 
     def co(string,filename,force=false)
@@ -137,6 +144,7 @@ module DFC
         @gpg.force = force
         @gpg.decrypt # file version
         raise "Checkout failed" unless verify
+        untouch	if $dark
       else
         raise "Key does not exist!"
       end
