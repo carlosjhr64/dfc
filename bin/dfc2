@@ -60,6 +60,7 @@ filename = ARGV.shift
 
 if command == 'log' then
   log = File.join(hidden,'log')
+puts log
   if File.exist?(log) then
     if key == 'clear' then
       puts File.unlink(log)
@@ -92,7 +93,7 @@ end
 database = DFC::Database.new(depository,passphrase) unless $options=~/--dark\b/
 
 def self.execute(database,command,key,filename)
-  success = log = true
+  log = ($options=~/--dark\b/) false : true
   case command
     when 'ci'   then database.ci( key, filename, false )
     when 'ci!'  then database.ci( key, filename, true )
@@ -102,15 +103,15 @@ def self.execute(database,command,key,filename)
       database.ci( filename, key, false )
       system( "shred -u '#{filename}'" )
     when 'shred!'
-      database.insert( filename, key, true )
+      database.ci( filename, key, true )
       system( "shred -u '#{filename}'" )
     when 'rmkey' then database.delete( key )
     else
-      success = log = false
+      log = false
       puts "Hmmm... missing command? Send me a bug report."
   end
   if log then
-    File.open( DFC::HIDDEN+'log', 'a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
+    File.open( File.join(DFC::HIDDEN,'log'), 'a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
   end
 end
 
