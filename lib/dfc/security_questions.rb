@@ -4,24 +4,47 @@ module DFC
     QGRAPH = 0.upto(255).map{|i| i.chr}.select{|c| c=~/[[:graph:]]/ && c=~/[^`'"]/}
 
     QUESTIONS = [
+
+	# Not definite?
+
 	"Your favorite word:  ",
-	"Last four digits of a number that does not change (ie. SS#):  ",
-	"Name of your best friend in primary school:  ",
-	"Your high school friend's favorite rock-band:  ",
 	"A short memorable quote from one of your friends:  ",
-	"Name of the person you had your first romantic moment:  ",
 	"Name of a real jerk:  ",
+
+	# Good (?)
+
 	"A book you read in high school:  ",
-	"First city you remember being in that is not your place of birth:  ",
-	"Your first pet's name:  ",
-	"Destination of the first long road trip you remember taking:  ",
-	"Middle name of your nearest relative:  ",
-	"Your fifth grade school:  ",
-	"Your maternal grandmother's maiden name:  ",
-	"Title of your first job:  ",
+
+	# Vulnerable to family
+
 	"A TV show your parents watched:  ",
-	"The color year make model (or just what you know) of the oldest car you remember you parents owning:  ",
-	"First movie you walked out of (or really hated):  ",
+	"Your maternal grandmother's maiden name:  ", # maybe even researchable
+	"Your first pet's name:  ",
+	"Destination of the first long road trip you remember taking:  ", # probably family, maybe vulnerable to freinds
+	"The name of the first cat you've known: ",
+
+	# Vulnerable to friends
+
+	"The most ridiculous nickname among your freinds:  ",
+	"Your high school friend's favorite rock-band:  ",
+	"Name of your best friend in primary school:  ",
+	"Name of the person you had your first romantic moment:  ",
+	"First movie you walked out of or really hated:  ", # but still pretty good
+
+	# Searchable space
+
+	"The color year make model of the oldest car you remember your parents owning:  ",
+
+	# Guessable from research
+
+	"First city you remember being in that is not your place of birth:  ",
+
+	# Researchable
+
+	"Middle name of your nearest relative:  ",
+	"Last four digits of a number that does not change (ie. SS#):  ",
+	"Your fifth grade school:  ",
+	"Title of your first job:  ",
     ]
 
     INSTRUCTIONS = <<EOT
