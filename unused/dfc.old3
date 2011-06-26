@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+require 'dfc'
+
+include DFC
+
+if !File.exist?(DFC_DIRECTORY) then
+end
+if !File.directory(DFC_DIRECTORY) then
+  # TODO
+  $stderr.puts "#{DFC_DIRECTORY} is not a directory
+  exit
+end
+

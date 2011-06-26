@@ -1,35 +1,38 @@
 module DFC
 
   module SecurityQuestions
+    QGRAPH = 0.upto(255).map{|i| i.chr}.select{|c| c=~/[[:graph:]]/ && c=~/[^`'"]/}
 
     QUESTIONS = [
-	"What is your favorite word?  ",					# 1
-	"What school did you attend for sixth grade?  ",			# 2
-	"What are the last 4 digits of your Social Security number?  ",		# 3
-	"What is your middle name?  ",						# 4
-	"What is the name of your first pet?  ",				# 5
-	"In what city where you born?  ",					# 6
-	"When is your birthdate (yyyy-mm-dd)?  ",				# 7
-	"What is your mother's maiden name?  ",					# 8
-	"What is the first name of your biggest crush?  ",			# 9
-	"What is the first name of your first crush?  ",			# 10
-	"What is the name of your first boy/girl friend?  ",			# 11
-	"Which was your favorite childhood movie?  ",				# 12
-	"Which was your favorite teen movie?  ",				# 13
-	"What is the name of your favorite childhood friend?  ",		# 14
-	"What was your favorite band or singer in junior high?  ",		# 15
-	"What is your favorite game?  ",					# 16
-	"What is your favorite book?  ",					# 17
-	"Who's you favorite actor/actress?  ",					# 18
+	"Your favorite word:  ",
+	"Last four digits of a number that does not change (ie. SS#):  ",
+	"Name of your best friend in primary school:  ",
+	"Your high school friend's favorite rock-band:  ",
+	"A short memorable quote from one of your friends:  ",
+	"Name of the person you had your first romantic moment:  ",
+	"Name of a real jerk:  ",
+	"A book you read in high school:  ",
+	"First city you remember being in that is not your place of birth:  ",
+	"Your first pet's name:  ",
+	"Destination of the first long road trip you remember taking:  ",
+	"Middle name of your nearest relative:  ",
+	"Your fifth grade school:  ",
+	"Your maternal grandmother's maiden name:  ",
+	"Title of your first job:  ",
+	"A TV show your parents watched:  ",
+	"The color year make model (or just what you know) of the oldest car you remember you parents owning:  ",
+	"First movie you walked out of (or really hated):  ",
     ]
 
     INSTRUCTIONS = <<EOT
-Answer these security questions any way you like (with gibberish even), but
+Answer these security questions any way you like, but
 you need to be able to replicate your answers.
-Your answers are not stored, they're (strip-ed and) used to feed into Digest::SHA256 to create a passphrase.
+You should try to give a different answer for each question.
+Your answers are not stored, they're used to feed into Digest::SHA512 to create a passphrase.
 IF YOU FORGET HOW YOU ANSWERED ANY OF THESE QUESTIONS YOU'LL LOOSE YOUR DATA!
 So it's not about giving the right anwser, it's about getting the right passphrase.
-The first question will be "What is you favorite word?"
+The questions are phrased *Family Feud* style.
+The first question will be "Your favorite word:"
 This one is the most likely one you'll fail to replicate later, so think about it.
 Your first answer will not be shown, but
 the rest will be visible so beware of evesdroppers.
@@ -64,7 +67,7 @@ EOT
     end
 
     def self.ask_questions
-      digest = Digest::SHA256.new
+      sha512 = Digest::SHA512.new
       system('clear')
       first = true
       QUESTIONS.each do |question|
@@ -76,10 +79,17 @@ EOT
           print question
           answer = $stdin.gets.strip
         end
-        digest << answer
+        sha512 << answer
         system('clear')
       end
-      return digest.hexdigest
+      string, l, r, y  =  '', QGRAPH.length, 0, nil
+      sha512.digest.bytes.each do |b|
+        y = b+r
+        r = y/l
+        string += QGRAPH[y%l]
+      end
+      # going to ignore remainder
+      return string
     end
 
     def self.hash
@@ -87,21 +97,21 @@ EOT
       puts INSTRUCTIONS
       $stdin.gets
 
-      hexdigest0 = SecurityQuestions.ask_questions
+      passphrase = SecurityQuestions.ask_questions
 
       system('clear')
       puts INSTRUCTIONS2
       $stdin.gets
 
-      hexdigest1 = SecurityQuestions.ask_questions
+      verify = SecurityQuestions.ask_questions
 
-      if !(hexdigest0 == hexdigest1) then
+      if !(passphrase == verify) then
         system('clear')
         puts FAIL_MESSAGE
         exit
       end
 
-      return hexdigest0
+      return passphrase
     end
 
   end

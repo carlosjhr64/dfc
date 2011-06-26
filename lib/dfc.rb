@@ -1,15 +1,17 @@
-gem 'ruby-password', '~> 0.15'
+gem 'ruby-password', '= 0.15.5'
+gem 'symmetric_gpg', '~> 2.0'
 
 autoload :Digest, 'digest'
 autoload :Timeout, 'timeout'
 autoload :Find, 'find'
 autoload :Password, 'password' # ruby-password
+autoload :SymmetricGPG, 'symmetric_gpg'
 
 module DFC
   VERSION = '0.0.0'
 
   # This application's hidden directory for the user
-  HIDDEN = File.join( ENV[:HOME], '.dfc2' )
+  HIDDEN = File.join( ENV[:HOME], '.dfc' )
   DARK = 'dark'
   DEPOSITORY = 'depository'
   YING = 'ying'

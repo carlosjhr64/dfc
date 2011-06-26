@@ -62,7 +62,6 @@ filename = ARGV.shift
 
 if command == 'log' then
   log = File.join(hidden,'log')
-puts log
   if File.exist?(log) then
     if key == 'clear' then
       puts File.unlink(log)
@@ -92,10 +91,10 @@ while !(passphrase = database['passphrase']) do
   password = Password.get("Password: ")
   database = DFC::Database.new(dark,password)
 end
-
 # Switch to the synch depositories unless we are to stay dark
 $dark = ($options=~/--dark\b/)? true : false
 $dark.freeze
+
 database = DFC::Database.new(depository,passphrase) unless $dark
 
 def self.execute(database,command,key,filename)

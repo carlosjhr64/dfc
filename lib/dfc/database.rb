@@ -1,8 +1,3 @@
-require 'digest'
-gem 'symmetric_gpg', '~> 2.0'
-require 'symmetric_gpg'
-require 'dfc/access'
-
 module DFC
   class Database < Access
     STRING_PATTERN = Regexp.new('[^\.][^.\d]$')
@@ -22,7 +17,7 @@ module DFC
              sha.update(c)
            end
          end
-         hexdigest1 = sha.hexdigest
+         digest1 = sha.digest
 
          sha = Digest::SHA1.new
          self._dec do |stdout| 
@@ -30,9 +25,9 @@ module DFC
              sha.update(c)
            end
          end
-         hexdigest0 = sha.hexdigest
+         digest0 = sha.digest
 
-         hexdigest0 == hexdigest1
+         digest0 == digest1
       end
     end
 

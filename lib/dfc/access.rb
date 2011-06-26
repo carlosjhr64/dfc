@@ -1,11 +1,9 @@
-require 'digest'
-require 'dfc/sequence'
-
 module DFC
 
   # Access to the directories
   # Meant to be subclassed.  All methods private or protected.
   class Access
+    WORD = 0.upto(255).map{|i| i.chr}.select{|c| c=~/\w/ && c=~/[^_]/}
 
     attr_accessor :passphrase
     def initialize(directories,passphrase)
@@ -16,7 +14,14 @@ module DFC
     private
 
     def digest(string)
-      Digest::SHA1.hexdigest(string+@passphrase)
+      key, l, r, y  =  '', WORD.length, 0, nil
+      Digest::SHA1.digest(string+@passphrase).bytes.each do |b|
+        y = b+r
+        r = y/l
+        key += WORD[y%l]
+      end
+      # going to ignore remainder
+      return key
     end
 
     protected

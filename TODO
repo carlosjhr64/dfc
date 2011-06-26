@@ -1,10 +1,17 @@
 TODO
 
+	0.upto(0xff).map{|i| i.chr}.select{|c| c=~/\w/}...
+	a.digest.chars.each{|x| y=x.ord+r; r=y/63; puts r; string+=b[y % 63] }; while something like... string += b[r]  to finish up.
+
+	Get password from ENV?
+
+DONE
+
 	Set timestamps to EPOCH
 	Don't forget touch/untouch
 		It really is neccessary!!!!
-
-DONE
+		There's no point in doing this for repositories as they keep their own timestamps,
+		but it's done for dark.
 
 	do a checksum of ci'ins to verify success?
 
