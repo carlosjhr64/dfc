@@ -1,13 +1,17 @@
 TODO
 
-	Verify all options, raise exception on unrecognized options
+
+NICE TO HAVE
+
 	Have an interative move.
-	Review what libraries are used
-	Write README.txt and documentation.
-	Get password from ENV?
+	Verify all options, raise exception on unrecognized options
 
 DONE
 
+	Get password from ENV?
+		Done by file instead
+	Write README.txt and documentation.
+	Review what libraries are used
 	0.upto(0xff).map{|i| i.chr}.select{|c| c=~/\w/}...
 	a.digest.chars.each{|x| y=x.ord+r; r=y/63; puts r; string+=b[y % 63] }; while something like... string += b[r]  to finish up.
 
