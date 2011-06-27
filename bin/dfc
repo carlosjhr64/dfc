@@ -19,6 +19,12 @@ Usage: dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>
 	shred   creates a new key with the file's content and then deletes the file
 	shred!  overwrites a key with the file's content and then deletes the file
 	rmkey   deletes key
+Options:
+	--dark	use the dark directory
+	-h	this help
+	--help
+	-v	the version
+	--version
 EOT
   exit
 end
