@@ -8,7 +8,7 @@ autoload :Password, 'password' # ruby-password
 autoload :SymmetricGPG, 'symmetric_gpg'
 
 module DFC
-  VERSION = '0.0.0'
+  VERSION = '0.0.1'
 
   # This application's hidden directory for the user
   HIDDEN = File.join( ENV[:HOME], '.dfc' )
