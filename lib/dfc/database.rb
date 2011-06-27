@@ -1,6 +1,6 @@
 module DFC
   class Database < Access
-    STRING_PATTERN = Regexp.new('[^\.][^.\d]$')
+    ILLEGAL_PATTERN = Regexp.new('\.\d+$')
 
     def self.number_of_shreds(size)
       Math.log( (size - 1).to_f + Math::E ).to_i
@@ -41,7 +41,7 @@ module DFC
     public
 
     def validate(string)
-      raise "Not a valid string key" if !(string =~ STRING_PATTERN)
+      raise "Not a valid string key" if string =~ ILLEGAL_PATTERN
     end
 
     def find_shreds(string)
@@ -89,6 +89,10 @@ module DFC
       return false
     end
 
+    def untouch
+      @gpg.encrypted.each{|filename| File.utime( 0, 0, filename )}
+    end
+
     def [](string)
       if shreds = find_shreds(string) then
         @gpg.encrypted = shreds
@@ -109,10 +113,6 @@ module DFC
       @gpg.force = true
       @gpg.shred # string version
       untouch	if $dark
-    end
-
-    def untouch
-      @gpg.encrypted.each{|filename| File.utime( 0, 0, filename )}
     end
 
     def ci(string,filename,force=false)

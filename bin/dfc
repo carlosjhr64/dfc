@@ -81,9 +81,9 @@ CommandLine.help if	(!filename && !(command=='rmkey')) ||
 
 password = nil
 pwdfile = File.join(DFC::HIDDEN,'password')
-if File.exist?(pwdfile)) then
+if File.exist?(pwdfile) then
   pwdfile = true
-  password = File.read(pwdfile):
+  password = File.read(pwdfile)
 else
   pwdfile = false
   password = Password.get("Password: ")
