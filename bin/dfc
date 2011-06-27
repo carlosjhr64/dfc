@@ -82,11 +82,11 @@ CommandLine.help if	(!filename && !(command=='rmkey')) ||
 password = nil
 pwdfile = File.join(DFC::HIDDEN,'password')
 if File.exist?(pwdfile) then
-  pwdfile = true
   password = File.read(pwdfile)
+  pwdfile = true
 else
-  pwdfile = false
   password = Password.get("Password: ")
+  pwdfile = false
 end
 
 database = DFC::Database.new(dark,password)
