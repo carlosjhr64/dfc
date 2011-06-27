@@ -79,10 +79,20 @@ CommandLine.help if	(!filename && !(command=='rmkey')) ||
 			!['ci','co','ci!','co!','shred','shred!','rmkey'].include?(command) ||
 			(filename && (command == 'rmkey'))
 
-password = Password.get("Password: ")
+password = nil
+pwdfile = File.join(DFC::HIDDEN,'password')
+if File.exist?(pwdfile)) then
+  pwdfile = true
+  password = File.read(pwdfile):
+else
+  pwdfile = false
+  password = Password.get("Password: ")
+end
+
 database = DFC::Database.new(dark,password)
 while !(passphrase = database['passphrase']) do
   sleep(1)
+  raise "Bad password file" if pwdfile
   print "Forget your password(Y/n)? "
   if $stdin.gets.strip == 'Y' then
     DFC::Install.reset
@@ -91,6 +101,7 @@ while !(passphrase = database['passphrase']) do
   password = Password.get("Password: ")
   database = DFC::Database.new(dark,password)
 end
+
 # Switch to the synch depositories unless we are to stay dark
 $dark = ($options=~/--dark\b/)? true : false
 $dark.freeze
@@ -105,10 +116,10 @@ def self.execute(database,command,key,filename)
     when 'co'   then database.co( key, filename, false )
     when 'co!'  then database.co( key, filename, true )
     when 'shred'
-      database.ci( filename, key, false )
+      database.ci( key, filename, false )
       system( "shred -u '#{filename}'" )
     when 'shred!'
-      database.ci( filename, key, true )
+      database.ci( key, filename, true )
       system( "shred -u '#{filename}'" )
     when 'rmkey' then database.delete( key )
     else

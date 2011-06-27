@@ -20,12 +20,12 @@ module DFC
 	"A TV show your parents watched:  ",
 	"Your maternal grandmother's maiden name:  ", # maybe even researchable
 	"Your first pet's name:  ",
-	"Destination of the first long road trip you remember taking:  ", # probably family, maybe vulnerable to freinds
+	"Destination of the first long road trip you remember taking:  ", # probably family, maybe vulnerable to friends
 	"The name of the first cat you've known: ",
 
 	# Vulnerable to friends
 
-	"The most ridiculous nickname among your freinds:  ",
+	"The most ridiculous nickname among your friends:  ",
 	"Your high school friend's favorite rock-band:  ",
 	"Name of your best friend in primary school:  ",
 	"Name of the person you had your first romantic moment:  ",
@@ -53,7 +53,7 @@ you need to be able to replicate your answers.
 You should try to give a different answer for each question.
 Your answers are not stored, they're used to feed into Digest::SHA512 to create a passphrase.
 IF YOU FORGET HOW YOU ANSWERED ANY OF THESE QUESTIONS YOU'LL LOOSE YOUR DATA!
-So it's not about giving the right anwser, it's about getting the right passphrase.
+So it's not about giving the right answer, it's about getting the right passphrase.
 The questions are phrased *Family Feud* style.
 The first question will be "Your favorite word:"
 This one is the most likely one you'll fail to replicate later, so think about it.
