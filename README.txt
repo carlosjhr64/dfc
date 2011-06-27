@@ -10,8 +10,8 @@ DFC is a command line utility that uses SymetricGPG::Shreds to encrypt and shred
 See:
    SymmetricGPG   https://sites.google.com/site/carlosjhr64/rubygems/symmetricgpg
    Shredder       https://sites.google.com/site/carlosjhr64/rubygems/shredder
-It creates a database that is accesible by keys.
-It's meant to be used in conjuction with two folder synchronizing depositories, like DropBox and Wuala.
+It creates a database that is accessible by keys.
+It's meant to be used in conjunction with two folder synchronizing depositories, like DropBox and Wuala.
 Encrypted files are shredded and dispersed among the two depositories so that neither has the entire file.
 
 When run for the very first time,
@@ -32,6 +32,8 @@ Help output:
            shred   creates a new key with the file's content and then deletes the file
            shred!  overwrites a key with the file's content and then deletes the file
            rmkey   deletes key
+           log     read the depository's log
+           log ci! backup the log file
     Options:
            --dark  use the dark directory
            -h      this help
@@ -39,6 +41,7 @@ Help output:
            -v      the version
            --version
 
+Note that because of "log ci!", "log" is a reserved key.
 There is no configuration.  See the full documentation at:
    https://sites.google.com/site/carlosjhr64/rubygems/dfc
 
@@ -46,8 +49,8 @@ The shreds are stored in ~/.dfc.  There are two directories in ~/.dfc, dark and 
 The dark directory holds shreds you don't want in the depository, such as
 the shreds for the passphrase data.  To get your depository shreds backed up,
 you need to either create a link to the folder that's being synchronized or
-make the synch service syncronize the shreds directory.
-DFC is meant to be used with two separate sychronization services.
+make the synch service synchronize the shreds directory.
+DFC is meant to be used with two separate synchronization services.
 Consider Dropbox and Wuala for the following example.
 Dropbox creates a directory ~/Dropbox for the user which is the synchronized folder.
 Wuala allows the user to set which folder to synchronize.
@@ -61,5 +64,5 @@ And then link to these directories:
 You should not synch the dark files because:
    1. There is no reason to.  Passphrase via security questions are reproducible.
    2. The passphrase is the third triad of the dispersal.
-   3. The file timestamps are set to EPOC which may break how the synch service works.
+   3. The file timestamps are set to EPOCH which may break how the synch service works.
 

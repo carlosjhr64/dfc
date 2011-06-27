@@ -11,7 +11,8 @@ module CommandLine
 
 def self.help
   puts <<EOT
-Usage: dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>
+Usage:		dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>
+Commands:
 	ci      creates a new key with the file's content
 	ci!     overwrites an existing key with the file's content
 	co      creates a new file with the key's content
@@ -19,6 +20,8 @@ Usage: dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>
 	shred   creates a new key with the file's content and then deletes the file
 	shred!  overwrites a key with the file's content and then deletes the file
 	rmkey   deletes key
+	log	read the depository's log
+	log ci!	backup the log file
 Options:
 	--dark	use the dark directory
 	-h	this help
@@ -68,16 +71,18 @@ filename = ARGV.shift
 
 if command == 'log' then
   log = File.join(hidden,'log')
-  if File.exist?(log) then
-    if key == 'clear' then
-      puts File.unlink(log)
-    else
-      puts File.read(log)
-    end
+  if key == 'ci!' then
+    command = key
+    key = 'log'
+    filename = log
   else
-    puts "No log file found"
+    if File.exist?(log) then
+      puts File.read(log)
+    else
+      puts "No log file found"
+    end
+    exit # EXIT
   end
-  exit # EXIT
 end
 
 CommandLine.help if	(!filename && !(command=='rmkey')) ||
@@ -133,7 +138,7 @@ def self.execute(database,command,key,filename)
       puts "Hmmm... missing command? Send me a bug report."
   end
   if log then
-    File.open( File.join(DFC::HIDDEN,'log'), 'a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{filename}\t#{key}\t#{$options}" }
+    File.open( File.join(DFC::HIDDEN,'log'), 'a', 0600 ){|fh| fh.puts "#{Time.now}\t#{command}\t#{key}\t#{filename}\t#{$options}" }
   end
 end
 
