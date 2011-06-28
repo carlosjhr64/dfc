@@ -14,14 +14,7 @@ module DFC
     private
 
     def digest(string)
-      key, l, r, y  =  '', WORD.length, 0, nil
-      Digest::SHA1.digest(string+@passphrase).bytes.each do |b|
-        y = b+r
-        r = y/l
-        key += WORD[y%l]
-      end
-      # going to ignore remainder
-      return key
+      DFC.worded( Digest::SHA1.digest(string+@passphrase) )
     end
 
     protected

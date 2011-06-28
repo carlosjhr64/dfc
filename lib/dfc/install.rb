@@ -52,7 +52,7 @@ EOT
       Dir.mkdir(HIDDEN,0700)
       [ File.join(HIDDEN,DARK), File.join(HIDDEN,DEPOSITORY) ].each do |subdir|
         Dir.mkdir(subdir,0700)
-        [ File.join(subdir,YING), File.join(subdir,YANG) ].each do |subdir|
+        [ File.join(subdir,YIN), File.join(subdir,YANG) ].each do |subdir|
           Dir.mkdir(subdir,0700)
         end
       end

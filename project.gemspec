@@ -67,8 +67,8 @@ EOT
  end
 
  s.add_dependency('ruby-password','= 0.15.5')
- s.add_dependency('symmetric_gpg','~> 2.0')
  s.add_dependency('shredder','~> 0.2')
+ s.add_dependency('symmetric_gpg','~> 2.0')
 # s.requirements << 'net/https'
 
 end

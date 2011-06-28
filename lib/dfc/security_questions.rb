@@ -105,14 +105,7 @@ EOT
         sha512 << answer
         system('clear')
       end
-      string, l, r, y  =  '', QGRAPH.length, 0, nil
-      sha512.digest.bytes.each do |b|
-        y = b+r
-        r = y/l
-        string += QGRAPH[y%l]
-      end
-      # going to ignore remainder
-      return string
+      return DFC.qgraphed( sha512.digest )
     end
 
     def self.hash
