@@ -8,11 +8,14 @@
 NEW FOR VERSION 1:
  1. I'd mispelt yin as ying, so that's fixed.
     If you were using version 0, just move the two misspelt directories.
- 2. Also added a "pwds" command.  It gives a list of suggested passphrases
+ 2. Added "pwds" command.  It gives a list of suggested passphrases
     based on your master passphrase (with optional salts).
     If you use these as passphrases to your synch services, then
     in the event of having to reconstruct the database on a new computer,
     you'll have the passphrases to the synch services available.
+ 3. Added "questions" command.  From time to time you should test yourself and
+    check if you can answer the security questions exactly as you did to create your dfc passphrase.
+    This ensures you'll be able to recreate the datase.
 
 Please consider DFC experimental because of it's use of security questions.
 

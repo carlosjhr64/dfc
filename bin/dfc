@@ -17,6 +17,7 @@ Usage:
 		dfc log
 		dfc log ci!
 		dfc pwds <salt1> <salt2>
+		questions
 Commands:
 	ci      creates a new key with the file's content
 	ci!     overwrites an existing key with the file's content
@@ -28,6 +29,7 @@ Commands:
 	log	read the depository's log
 	log ci!	backup the log file
 	pwds	give a list of passphrases based on the user's passphrase and optional salts
+	questions test yourlself, see if you can reproduce your answers to the security questions
 Options:
 	--dark	use the dark directory
 	-h	this help
@@ -100,7 +102,7 @@ if command == 'log' then
   end
 end
 
-if command != 'pwds' then
+if !['pwds','questions'].include?(command) then
   CommandLine.help if	(!filename && !(command=='rmkey')) ||
 			!key ||
 			!['ci','co','ci!','co!','shred','shred!','rmkey'].include?(command) ||
@@ -139,6 +141,25 @@ if command == 'pwds' then
     shai = sha512.dup
     shai << i.to_s
     puts DFC.qgraphed( shai.digest )
+  end
+  exit
+end
+
+if command == 'questions' then
+  verify = DFC::SecurityQuestions.hash
+  if verify == passphrase then
+    puts <<EOT
+PASSED!
+EOT
+  else
+    puts <<EOT
+Sorry, although you successfully answered the same way twice,
+you missed at least one question from how you initially answered
+to create your passphrase.  Should you have to recreate the database,
+your at risk of not being able to do so.  You should try to figure out
+what you missed, or take the time to create a new database with a new passphrase
+based on how you are answering the questions now.
+EOT
   end
   exit
 end
