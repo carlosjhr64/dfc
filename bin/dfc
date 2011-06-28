@@ -60,6 +60,11 @@ EOT
   puts <<EOT
 It's possible there's an applicaction collision for #{hidden}, or
 that there was a failed installation attempt.
+If you were using a previous version of DFC,
+yin was mispelled as ying.
+In that case, just do:
+   mv ~/.dfc/dark/ying ~/.dfc/dark/yin
+   mv ~/.dfc/depository/ying ~/.dfc/depository/yin
 EOT
   exit
 
@@ -68,6 +73,10 @@ end
 command  = ARGV.shift
 key      = ARGV.shift
 filename = ARGV.shift
+
+if ['log','passphrase'].include?(key) then
+  raise "Key #{} is reserved, only co and co! allowed." unless ['co','co!'].include?(command)
+end
 
 if command == 'log' then
   log = File.join(hidden,'log')
