@@ -36,7 +36,7 @@ module DFC
   HIDDEN = File.join( ENV[:HOME], '.dfc' )
   DARK = 'dark'
   DEPOSITORY = 'depository'
-  YIN = 'ying'
+  YIN = 'yin'
   YANG = 'yang'
   
   def self.dark
