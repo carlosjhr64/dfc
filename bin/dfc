@@ -11,7 +11,12 @@ module CommandLine
 
 def self.help
   puts <<EOT
-Usage:		dfc [ci,ci!,co,co!,shred,shred!,rmkey] key <filename>
+Usage:
+		dfc [ci,ci!,co,co!,shred,shred!,rmkey] key filename
+		dfc rmkey key
+		dfc log
+		dfc log ci!
+		dfc pwds <salt1> <salt2>
 Commands:
 	ci      creates a new key with the file's content
 	ci!     overwrites an existing key with the file's content
@@ -22,6 +27,7 @@ Commands:
 	rmkey   deletes key
 	log	read the depository's log
 	log ci!	backup the log file
+	pwds	give a list of passphrases based on the user's passphrase and optional salts
 Options:
 	--dark	use the dark directory
 	-h	this help
@@ -94,10 +100,12 @@ if command == 'log' then
   end
 end
 
-CommandLine.help if	(!filename && !(command=='rmkey')) ||
+if command != 'pwds' then
+  CommandLine.help if	(!filename && !(command=='rmkey')) ||
 			!key ||
 			!['ci','co','ci!','co!','shred','shred!','rmkey'].include?(command) ||
 			(filename && (command == 'rmkey'))
+end
 
 password = nil
 pwdfile = File.join(DFC::HIDDEN,'password')
@@ -120,6 +128,19 @@ while !(passphrase = database['passphrase']) do
   end
   password = Password.get("Password: ")
   database = DFC::Database.new(dark,password)
+end
+
+if command == 'pwds' then
+  sha512 = Digest::SHA512.new
+  sha512 << passphrase
+  sha512 << key if key			# salt1
+  sha512 << filename if filename	# salt2
+  13.times do |i|
+    shai = sha512.dup
+    shai << i.to_s
+    puts DFC.qgraphed( shai.digest )
+  end
+  exit
 end
 
 # Switch to the synch depositories unless we are to stay dark
