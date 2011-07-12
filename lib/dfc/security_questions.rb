@@ -102,7 +102,7 @@ EOT
           print question
           answer = $stdin.gets.strip
         end
-        sha512 << answer
+        sha512 << ($options=~/-v1\b/)? answer : answer.downcase.gsub(/\W+/,'').squeeze
         system('clear')
       end
       return DFC.qgraphed( sha512.digest )

@@ -1,7 +1,6 @@
 TODO
 
-	log is a reserved key in depository
-	passphrase is a reserved key in dark
+	It's very unlikely, but what should happen in the event of a collision?
 
 NICE TO HAVE
 
@@ -9,6 +8,8 @@ NICE TO HAVE
 	Verify all options, raise exception on unrecognized options
 
 DONE
+	log is a reserved key in depository
+	passphrase is a reserved key in dark
 
 	Get password from ENV?
 		Done by file instead

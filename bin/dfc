@@ -29,13 +29,14 @@ Commands:
 	log	read the depository's log
 	log ci!	backup the log file
 	pwds	give a list of passphrases based on the user's passphrase and optional salts
-	questions test yourlself, see if you can reproduce your answers to the security questions
+	questions test yourself, see if you can reproduce your answers to the security questions
 Options:
 	--dark	use the dark directory
 	-h	this help
 	--help
 	-v	the version
 	--version
+	--v1	use version 1 hash feeder in security questions
 EOT
   exit
 end
