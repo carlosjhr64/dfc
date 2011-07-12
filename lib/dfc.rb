@@ -8,7 +8,7 @@ autoload :Password, 'password' # ruby-password
 autoload :SymmetricGPG, 'symmetric_gpg'
 
 module DFC
-  VERSION = '1.0.0'
+  VERSION = '2.0.0'
 
   WORD = 0.upto(255).map{|i| i.chr}.select{|c| c=~/\w/ && c=~/[^_]/}
   QGRAPH = 0.upto(255).map{|i| i.chr}.select{|c| c=~/[[:graph:]]/ && c=~/[^`'"]/}
