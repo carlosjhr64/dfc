@@ -5,6 +5,15 @@
        # This software is GPL #
        ########################
 
+IF YOU WERE USING VERSION 1, YOU'LL NEED TO (TEDIOUSLY) MIGRATE TO VERSION 2.
+Version 2 uses a different passphrase generator (see NEW FOR VERSION 2 below).
+
+NEW FOR VERSION 2:
+ 1. Added --v1 option.  This reverts to version 1.  :))
+ 2. Answers to the security questions are now ".strip.downcase.gsug(/\W/,'').squeeze"ed.
+    It used to just be ".strip"ed.
+    So, yeah... I was having trouble reproducing my answers.
+
 NEW FOR VERSION 1:
  1. I'd misspelled yin as ying, so that's fixed.
     If you were using version 0, just move the two misspelled directories.
