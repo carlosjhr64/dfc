@@ -10,7 +10,7 @@ Version 2 uses a different passphrase generator (see NEW FOR VERSION 2 below).
 
 NEW FOR VERSION 2:
  1. Added --v1 option.  This reverts to version 1.  :))
- 2. Answers to the security questions are now ".strip.downcase.gsug(/\W/,'').squeeze"ed.
+ 2. Answers to the security questions are now ".strip.downcase.gsub(/\W/,'').squeeze"ed.
     It used to just be ".strip"ed.
     So, yeah... I was having trouble reproducing my answers.
 
