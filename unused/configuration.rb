@@ -5,7 +5,7 @@ module Configuration
   ### Files and directories ###
 
   # This application's hidden directory for the user
-  HIDDEN = File.join( ENV[:HOME], '.dfc2' )
+  HIDDEN = File.join( ENV['HOME'], '.dfc2' )
 
   # The dark databsae
   DIRECTORIES = [

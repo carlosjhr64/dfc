@@ -36,7 +36,7 @@ Options:
 	--help
 	-v	the version
 	--version
-	--v1	use version 1 hash feeder in security questions
+	--v1	use version 1 (digest feeder in security questions changed)
 EOT
   exit
 end
