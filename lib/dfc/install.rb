@@ -32,7 +32,6 @@ EOT
       while password.nil? do
         begin
           password = Password.get( "New password: " )
-          password.check
           verify = Password.get( "Again: " )
           raise "did not match" if !(password == verify)
         rescue StandardError

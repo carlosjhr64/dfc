@@ -3,7 +3,8 @@ module DFC
   module SecurityQuestions
     QGRAPH = 0.upto(255).map{|i| i.chr}.select{|c| c=~/[[:graph:]]/ && c=~/[^`'"]/}
 
-    QUESTIONS = [
+    if $options =~ /-v[12]\b/
+      QUESTIONS = [
 
 	# Not definite?
 
@@ -45,7 +46,14 @@ module DFC
 	"Last four digits of a number that does not change (ie. SS#):  ",
 	"Your fifth grade school:  ",
 	"Title of your first job:  ",
-    ]
+      ]
+    else
+      QUESTIONS = [
+	"ID Number (ie. SS#):  ",
+	"Father's Birth City:  ",
+	"Mother's Middle Name:  ",
+      ]
+    end
 
     INSTRUCTIONS = <<EOT
 Answer these security questions any way you like, but
@@ -54,9 +62,6 @@ You should try to give a different answer for each question.
 Your answers are not stored, they're used to feed into Digest::SHA512 to create a passphrase.
 IF YOU FORGET HOW YOU ANSWERED ANY OF THESE QUESTIONS YOU'LL LOOSE YOUR DATA!
 So it's not about giving the right answer, it's about getting the right passphrase.
-The questions are phrased *Family Feud* style.
-The first question will be "Your favorite word:"
-This one is the most likely one you'll fail to replicate later, so think about it.
 Your first answer will not be shown, but
 the rest will be visible so beware of evesdroppers.
 

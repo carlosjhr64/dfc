@@ -37,6 +37,7 @@ Options:
 	-v	the version
 	--version
 	--v1	use version 1 (digest feeder in security questions changed)
+	--v2	use version 2 (old questions)
 EOT
   exit
 end
